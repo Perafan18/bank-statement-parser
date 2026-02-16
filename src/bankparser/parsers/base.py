@@ -80,3 +80,30 @@ class BaseParser(ABC):
             if pdf.pages:
                 return pdf.pages[0].extract_text() or ""
         return ""
+
+    @staticmethod
+    def extract_text_with_ocr(
+        pdf_path: Path, dpi: int = 300, psm: int = 6,
+    ) -> list[str]:
+        """Extract text from a PDF using OCR (pytesseract + pdf2image).
+
+        Use this when pdfplumber cannot decode the PDF fonts (e.g. CID-encoded).
+        Requires system packages: tesseract-ocr, tesseract-ocr-spa, poppler-utils.
+
+        Args:
+            pdf_path: Path to the PDF file.
+            dpi: Resolution for PDF-to-image conversion.
+            psm: Tesseract page segmentation mode (6 = uniform block, best
+                 for tabular bank statements).
+        """
+        from pdf2image import convert_from_path
+        import pytesseract
+
+        images = convert_from_path(str(pdf_path), dpi=dpi)
+        pages = []
+        for img in images:
+            text = pytesseract.image_to_string(
+                img, lang="spa", config=f"--psm {psm}",
+            )
+            pages.append(text)
+        return pages

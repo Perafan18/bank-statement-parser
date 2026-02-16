@@ -49,6 +49,7 @@ DEFAULT_CATEGORIES = [
     ("Telecom", None, "📡"),
     ("Entertainment", None, "🎭"),
     ("Home", None, "🏠"),
+    ("Utilities", None, "💡"),
     ("Health", None, "🏥"),
     ("Travel", None, "✈️"),
     ("Savings", None, "🏦"),
@@ -164,7 +165,12 @@ DEFAULT_RULES = [
     ("AHORRO", "Savings", "*", 10),
     ("BUHOCONTABLE", "Accounting", "*", 10),
 
-    # Statement-level
+    # Utilities
+    ("CFE SUM", "Utilities", "*", 10),
+    ("CFE SUMINISTRADOR", "Utilities", "*", 10),
+    ("AGUA ", "Utilities", "*", 5),
+
+    # Statement-level (all banks)
     ("GRACIAS POR SU PAGO", "Payment", "*", 100),
     ("PAGO RECIBIDO", "Payment", "*", 100),
     ("INTERÉS FINANCIERO", "Interest", "*", 100),
@@ -176,6 +182,17 @@ DEFAULT_RULES = [
     ("I.V.A.", "Tax", "*", 100),
     ("MONTO A DIFERIR", "MSI Adjustment", "*", 100),
     ("MESES EN AUTOMÁTICO", "MSI Installment", "*", 100),
+
+    # HSBC-specific
+    ("SUPAGO GRACIAS", "Payment", "hsbc", 100),
+
+    # BBVA-specific
+    ("BMOVIL.PAGO TDC", "Payment", "bbva", 100),
+    ("INTERESES EFI", "Interest", "bbva", 100),
+    ("EFECTIVO INMEDIATO", "MSI Installment", "bbva", 100),
+    ("ABONO FINANC", "MSI Adjustment", "bbva", 100),
+    ("ALTA PARA MESES S/INTERESES", "MSI Adjustment", "bbva", 100),
+    ("CONTRATACION BENEFICIOS", "Fees", "bbva", 100),
 ]
 
 
