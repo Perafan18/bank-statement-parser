@@ -1,10 +1,10 @@
-"""Parser for BBVA Mexico (Bancomer) credit card and debit statements.
+"""Parser for BBVA Mexico (Bancomer) TDC (credit card) statements.
 
-BBVA Mexico PDF statements typically have:
+BBVA TDC PDF statements have:
 - Header with account info, period, balances
-- "MOVIMIENTOS DEL PERIODO" section with tabular transactions
-- Format: DD/MMM  DESCRIPTION  CARGO/ABONO  AMOUNT
-- Or:     DD/MMM/YYYY  DESCRIPTION  AMOUNT
+- "CARGOS,COMPRAS Y ABONOS REGULARES(NO A MESES)" section with transactions
+- Each transaction: two dates (operation + charge), description, +/- sign, $ amount
+- Optional foreign-currency continuation line with original amount and exchange rate
 
 NOTE: BBVA statement formats vary between credit cards, debit accounts,
 and different statement periods. If the parser doesn't work perfectly
@@ -18,7 +18,7 @@ from datetime import date
 from pathlib import Path
 
 from bankparser.models import ParseResult, StatementInfo, Transaction, TransactionType
-from bankparser.parsers.base import BaseParser, MONTHS_ES
+from bankparser.parsers.base import BaseParser
 
 # BBVA uses abbreviated months in some formats
 MONTHS_ABBREV = {
@@ -46,41 +46,41 @@ class BBVAParser(BaseParser):
 
     # ── Regexes ───────────────────────────────────────────────────────────────
 
-    # Date formats BBVA uses:
-    # "09/ENE"  "09/Ene"  "09/01"  "09/01/2026"  "09 ENE"
-    DATE_PATTERNS = [
-        # DD/MMM or DD/MMM/YYYY (month as 3-letter abbreviation)
-        re.compile(
-            r'^(\d{1,2})[/\s]([A-Za-z]{3})(?:[/\s](\d{2,4}))?\s+(.+?)\s+([\d,]+\.\d{2})\s*$'
-        ),
-        # DD/MM or DD/MM/YYYY (numeric month)
-        re.compile(
-            r'^(\d{1,2})/(\d{2})(?:/(\d{2,4}))?\s+(.+?)\s+([\d,]+\.\d{2})\s*$'
-        ),
-    ]
-
-    # Two-column format: description on one side, cargo/abono on the other
-    TWO_COL_RE = re.compile(
-        r'^(\d{1,2})[/\s]([A-Za-z]{3}|\d{2})(?:[/\s](\d{2,4}))?\s+'
-        r'(.+?)\s+'
-        r'([\d,]+\.\d{2})\s*(-?)$'
+    # Transaction line: two dates, description, +/- sign, $ amount
+    # e.g. "11-ene-2026 12-ene-2026 OXXO TONALA + $48.50"
+    TX_RE = re.compile(
+        r'^(\d{1,2}-[a-z]{3}-\d{4})\s+(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+([+-])\s+\$([\d,]+\.\d{2})\s*$'
     )
 
+    # Foreign currency continuation line
+    # e.g. "USD $100.45 TIPO DE CAMBIO $17.99"
+    FOREIGN_RE = re.compile(
+        r'^\s*([A-Z]{3})\s+\$([\d,]+\.\d{2})\s+TIPO DE CAMBIO\s+\$([\d,.]+)'
+    )
+
+    # Installment prefix in description: "03 DE 03 TIENDA GRANDE"
+    INSTALLMENT_RE = re.compile(r'^(\d{2}\s+DE\s+\d{2,3})\s+(.+)')
+
+    # MSI sin intereses row: date, description, original amount, pending, required, installment, rate
+    MSI_SIN_RE = re.compile(
+        r'^(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+(\d+\s+de\s+\d+)\s+([\d.]+%)'
+    )
+
+    # MSI con intereses row: date, description, original, pending, interest, iva, required, installment, rate
+    MSI_CON_RE = re.compile(
+        r'^(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+(\d+\s+de\s+\d+)\s+([\d.]+%)'
+    )
+
+    # Lines to skip (non-transaction content)
     SKIP_PATTERNS = [
-        r'^Estado de [Cc]uenta', r'^ESTADO DE CUENTA',
-        r'^Resumen', r'^RESUMEN', r'^Página', r'^PÁGINA',
-        r'^Saldo anterior', r'^SALDO ANTERIOR',
-        r'^Total de movimientos', r'^TOTAL DE MOVIMIENTOS',
-        r'^Fecha de corte', r'^FECHA DE CORTE',
-        r'^Saldo al corte', r'^SALDO AL CORTE',
-        r'^Pago mínimo', r'^PAGO MÍNIMO',
-        r'^Fecha límite', r'^FECHA LÍMITE',
-        r'^MOVIMIENTOS DEL PERIODO', r'^Movimientos del periodo',
-        r'^Concepto\s+Cargo', r'^CONCEPTO\s+CARGO',
-        r'^Fecha\s+Concepto', r'^FECHA\s+CONCEPTO',
-        r'^CAT\s', r'^Tasa de interés',
-        r'^CLABE:', r'^RFC:',
-        r'^Para cualquier', r'^Línea BBVA',
+        re.compile(r'^CARGOS,COMPRAS Y ABONOS'),
+        re.compile(r'^Fecha'),
+        re.compile(r'^de la\s+Descripción'),
+        re.compile(r'^de cargo'),
+        re.compile(r'^operación'),
+        re.compile(r'^TOTAL\s+(CARGOS|ABONOS)'),
+        re.compile(r'^IVA\s*:\$'),
+        re.compile(r'^Capital de promoción'),
     ]
 
     # ── Main parse ────────────────────────────────────────────────────────────
@@ -89,186 +89,278 @@ class BBVAParser(BaseParser):
         pages_text = self.extract_text_from_pdf(pdf_path)
         warnings: list[str] = []
 
-        info = self._extract_info(pages_text[0] if pages_text else "")
-        year = info.period_end.year if info.period_end else date.today().year
+        full_text = "\n".join(pages_text)
+        info = self._extract_info(full_text)
 
         # Collect all lines from all pages
         all_lines: list[str] = []
         for text in pages_text:
             all_lines.extend(text.split('\n'))
 
-        transactions = self._parse_lines(all_lines, year, warnings)
+        transactions = self._parse_regular_section(all_lines)
+        transactions.extend(self._parse_msi_section(all_lines))
 
         return ParseResult(info=info, transactions=transactions, warnings=warnings)
 
     # ── Info extraction ───────────────────────────────────────────────────────
 
-    def _extract_info(self, first_page: str) -> StatementInfo:
+    @staticmethod
+    def _parse_bbva_date(date_str: str) -> date:
+        """Parse a BBVA date in 'DD-mmm-YYYY' format (e.g. '08-ene-2026')."""
+        day_s, month_s, year_s = date_str.split("-")
+        month = MONTHS_ABBREV[month_s.lower()]
+        return date(int(year_s), month, int(day_s))
+
+    def _extract_info(self, text: str) -> StatementInfo:
         info = StatementInfo(bank=self.bank_name)
 
-        # Account number (BBVA uses various formats)
-        # "Número de cuenta: 1234 5678 9012 3456" or "No. de Tarjeta: 4152..."
-        acct_patterns = [
-            r'(?:cuenta|tarjeta)[:\s]+(\d[\d\s*-]+\d)',
-            r'(\d{4}\s*\d{4}\s*\d{4}\s*\d{4})',
-        ]
-        for pattern in acct_patterns:
-            match = re.search(pattern, first_page, re.IGNORECASE)
-            if match:
-                info.account_number = re.sub(r'\s+', '', match.group(1))
-                break
+        # Account number: "Numero de tarjeta: 4152XXXXXXXXXXXX"
+        acct_match = re.search(r'Número de tarjeta:\s*(\d+)', text)
+        if acct_match:
+            info.account_number = acct_match.group(1)
 
-        # Period: "Del 10 de Diciembre al 09 de Enero de 2026"
-        # Or: "Periodo: 10/Dic/2025 al 09/Ene/2026"
+        # Period: "Periodo: 08-ene-2026 al 07-feb-2026"
         period_match = re.search(
-            r'[Dd]el\s+(\d{1,2})\s+de\s+([A-Za-záéíóúñ]+)\s+'
-            r'(?:de\s+\d{4}\s+)?al\s+(\d{1,2})\s+de\s+([A-Za-záéíóúñ]+)\s+de\s+(\d{4})',
-            first_page,
+            r'Periodo:\s+(\d{1,2}-[a-z]{3}-\d{4})\s+al\s+(\d{1,2}-[a-z]{3}-\d{4})',
+            text,
         )
         if period_match:
-            year = int(period_match.group(5))
             try:
-                end_month = MONTHS_ES.get(period_match.group(4).lower())
-                start_month = MONTHS_ES.get(period_match.group(2).lower())
-                if start_month and end_month:
-                    start_year = year if start_month <= end_month else year - 1
-                    info.period_start = date(
-                        start_year, start_month, int(period_match.group(1))
-                    )
-                    info.period_end = date(year, end_month, int(period_match.group(3)))
-            except (ValueError, TypeError):
+                info.period_start = self._parse_bbva_date(period_match.group(1))
+                info.period_end = self._parse_bbva_date(period_match.group(2))
+            except (ValueError, KeyError):
                 pass
 
-        # Cardholder
-        name_match = re.search(r'(?:NOMBRE|Nombre|Cliente)[:\s]+([A-ZÁÉÍÓÚÑ ]+)', first_page)
+        # Cardholder: line immediately after "TU PAGO REQUERIDO ESTE PERIODO"
+        name_match = re.search(
+            r'TU PAGO REQUERIDO ESTE PERIODO\n([A-ZÁÉÍÓÚÑ ]+)\n', text
+        )
         if name_match:
             info.cardholder = name_match.group(1).strip()
+
+        # Cut date: "Fecha de corte: 07-feb-2026"
+        cut_match = re.search(
+            r'Fecha de corte:\s+(\d{1,2}-[a-z]{3}-\d{4})', text
+        )
+        if cut_match:
+            try:
+                info.cut_date = self._parse_bbva_date(cut_match.group(1))
+            except (ValueError, KeyError):
+                pass
+
+        # Previous balance: "Adeudo del periodo anterior $19,810.48"
+        balance_match = re.search(
+            r'Adeudo del periodo anterior\s+\$([\d,]+\.\d{2})', text
+        )
+        if balance_match:
+            info.previous_balance = self.parse_mx_amount(balance_match.group(1))
 
         return info
 
     # ── Transaction parsing ───────────────────────────────────────────────────
 
-    def _parse_lines(
-        self, lines: list[str], year: int, warnings: list[str]
-    ) -> list[Transaction]:
+    def _parse_regular_section(self, lines: list[str]) -> list[Transaction]:
+        """Parse the CARGOS,COMPRAS Y ABONOS REGULARES section.
+
+        Iterates through lines, matching transaction patterns and looking
+        ahead for foreign-currency continuation lines.
+        """
         transactions: list[Transaction] = []
-        in_movements = False
+        i = 0
 
-        for line in lines:
-            line = line.strip()
+        while i < len(lines):
+            line = lines[i]
 
-            if not line:
+            # Skip empty lines
+            if not line.strip():
+                i += 1
                 continue
 
-            # Detect start of movements section
-            if re.match(r'(?i)movimientos?\s+(del\s+)?periodo', line):
-                in_movements = True
+            # Skip non-transaction lines
+            if self._should_skip(line.strip()):
+                i += 1
                 continue
 
-            if self._should_skip(line):
+            # Try to match a transaction line
+            tx_match = self.TX_RE.match(line.strip())
+            if not tx_match:
+                i += 1
                 continue
 
-            if not in_movements:
-                # Also try to parse if line looks like a transaction
-                # (some BBVA statements don't have a clear section header)
-                pass
+            # Extract fields from the match
+            op_date_str = tx_match.group(1)
+            charge_date_str = tx_match.group(2)
+            description = tx_match.group(3).strip()
+            sign = tx_match.group(4)
+            amount_str = tx_match.group(5)
 
-            # Try each date pattern
-            tx = self._try_parse_transaction(line, year)
-            if tx:
-                transactions.append(tx)
+            # Parse dates
+            tx_date = self._parse_bbva_date(op_date_str)
+            amount = self.parse_mx_amount(amount_str)
+
+            # Look ahead for foreign currency continuation
+            original_amount = None
+            original_currency = None
+            exchange_rate = None
+            j = i + 1
+
+            if j < len(lines):
+                foreign_match = self.FOREIGN_RE.match(lines[j])
+                if foreign_match:
+                    original_currency = foreign_match.group(1)
+                    original_amount = self.parse_mx_amount(foreign_match.group(2))
+                    exchange_rate = float(foreign_match.group(3).replace(',', ''))
+                    j += 1
+
+            # Determine sign: - means payment/credit, + means charge
+            is_minus = sign == "-"
+            if is_minus:
+                amount = -amount
+
+            # Check for installment prefix in description
+            installment = ""
+            inst_match = self.INSTALLMENT_RE.match(description)
+            if inst_match:
+                installment = inst_match.group(1)
+
+            # Classify transaction
+            tx_type = self._classify(description, is_minus, installment)
+
+            tx = Transaction(
+                date=tx_date,
+                description=description,
+                amount=amount,
+                currency="MXN",
+                bank=self.bank_name,
+                tx_type=tx_type,
+                installment=installment,
+                original_amount=original_amount,
+                original_currency=original_currency,
+                exchange_rate=exchange_rate,
+            )
+            transactions.append(tx)
+            i = j
+            continue
 
         return transactions
 
-    def _try_parse_transaction(self, line: str, year: int) -> Transaction | None:
-        """Try to parse a line as a transaction."""
+    def _parse_msi_section(self, lines: list[str]) -> list[Transaction]:
+        """Parse the MSI (Meses sin intereses) sections.
 
-        for pattern in self.DATE_PATTERNS:
-            match = pattern.match(line)
-            if match:
-                return self._build_transaction(match, year)
+        Finds both 'MESES SIN INTERESES' and 'MESES CON INTERESES' section
+        headers and parses the transaction rows within each section.
+        Skips table header lines and continuation lines (e.g. '36 M.').
+        """
+        transactions: list[Transaction] = []
 
-        return None
+        # Track which section we are currently in: None, "sin", or "con"
+        current_section: str | None = None
 
-    def _build_transaction(self, match: re.Match, year: int) -> Transaction | None:
-        """Build a Transaction from a regex match."""
-        day = int(match.group(1))
-        month_raw = match.group(2)
-        year_raw = match.group(3)  # might be None
-        description = match.group(4).strip()
-        amount_str = match.group(5)
+        for line in lines:
+            stripped = line.strip()
 
-        # Resolve month
-        month = self._resolve_month(month_raw)
-        if month is None:
-            return None
+            # Detect section headers
+            if "COMPRAS Y CARGOS DIFERIDOS A MESES SIN INTERESES" in stripped:
+                current_section = "sin"
+                continue
+            if "COMPRAS Y CARGOS DIFERIDOS A MESES CON INTERESES" in stripped:
+                current_section = "con"
+                continue
 
-        # Resolve year
-        if year_raw:
-            tx_year = int(year_raw)
-            if tx_year < 100:
-                tx_year += 2000
-        else:
-            tx_year = year
+            # If not in an MSI section, skip
+            if current_section is None:
+                continue
 
-        try:
-            tx_date = date(tx_year, month, day)
-        except ValueError:
-            return None
+            # Skip empty lines
+            if not stripped:
+                continue
 
-        amount = self.parse_mx_amount(amount_str)
+            # Try to match a row depending on the current section
+            if current_section == "con":
+                match = self.MSI_CON_RE.match(stripped)
+                if match:
+                    tx = Transaction(
+                        date=self._parse_bbva_date(match.group(1)),
+                        description=match.group(2).strip(),
+                        amount=self.parse_mx_amount(match.group(3)),
+                        currency="MXN",
+                        bank=self.bank_name,
+                        tx_type=TransactionType.MSI,
+                        installment=match.group(8),
+                    )
+                    transactions.append(tx)
+                # Non-matching lines (table headers, continuation lines like "36 M.")
+                # are simply skipped
+                continue
 
-        # Determine if credit/debit
-        is_credit = self._is_credit(description)
-        tx_type = self._classify(description, is_credit)
+            if current_section == "sin":
+                match = self.MSI_SIN_RE.match(stripped)
+                if match:
+                    tx = Transaction(
+                        date=self._parse_bbva_date(match.group(1)),
+                        description=match.group(2).strip(),
+                        amount=self.parse_mx_amount(match.group(3)),
+                        currency="MXN",
+                        bank=self.bank_name,
+                        tx_type=TransactionType.MSI,
+                        installment=match.group(6),
+                    )
+                    transactions.append(tx)
+                continue
 
-        if is_credit:
-            amount = -amount
+        return transactions
 
-        return Transaction(
-            date=tx_date,
-            description=description,
-            amount=amount,
-            currency="MXN",
-            bank=self.bank_name,
-            tx_type=tx_type,
-        )
+    def _classify(self, description: str, is_minus: bool, installment: str = "") -> TransactionType:
+        """Classify a transaction based on its description and sign.
 
-    def _resolve_month(self, month_raw: str) -> int | None:
-        """Resolve month from abbreviation or number."""
-        if month_raw.isdigit():
-            m = int(month_raw)
-            return m if 1 <= m <= 12 else None
-
-        abbrev = month_raw.lower()[:3]
-        return MONTHS_ABBREV.get(abbrev) or MONTHS_ES.get(abbrev)
-
-    def _is_credit(self, description: str) -> bool:
-        """Heuristic to detect credits in BBVA statements."""
+        Rules (checked in order, more specific patterns first):
+        - "BMOVIL.PAGO TDC" or minus-sign + "PAGO" -> PAYMENT
+        - "CONTRATACION BENEFICIOS" -> FEE
+        - "ABONO FINANC. COMPRAS" or "ALTA PARA MESES S/INTERESES" -> MSI_ADJUSTMENT
+        - "INTERES" in description -> INTEREST
+        - "XX DE YY EFECTIVO INMEDIATO" or installment prefix -> MSI
+        - Minus sign (not already classified) -> PAYMENT
+        - Plus sign -> CHARGE
+        """
         desc = description.upper()
-        return any(kw in desc for kw in [
-            "PAGO", "ABONO", "DEVOLUCION", "DEVOLUCIÓN", "BONIFICACION",
-            "BONIFICACIÓN", "TRANSFERENCIA RECIBIDA",
-        ])
 
-    def _classify(self, description: str, is_credit: bool) -> TransactionType:
-        desc = description.upper()
-        if any(kw in desc for kw in ["PAGO DE", "PAGO RECIBIDO", "SU PAGO", "ABONO"]):
+        # Payment: BMOVIL.PAGO TDC or any minus-sign with PAGO
+        if "BMOVIL.PAGO TDC" in desc:
             return TransactionType.PAYMENT
-        if "INTERES" in desc and ("ORDINARIO" in desc or "FINANCIERO" in desc):
+        if is_minus and "PAGO" in desc:
+            return TransactionType.PAYMENT
+
+        # Fee: CONTRATACION BENEFICIOS (before INTEREST, since some fees
+        # may contain "intereses" in a different context)
+        if "CONTRATACION BENEFICIOS" in desc:
+            return TransactionType.FEE
+
+        # MSI Adjustment: ABONO FINANC. COMPRAS, ALTA PARA MESES S/INTERESES
+        # Must be checked before INTEREST because "S/INTERESES" contains "INTERES"
+        if "ABONO FINANC" in desc:
+            return TransactionType.MSI_ADJUSTMENT
+        if "ALTA PARA MESES S/INTERESES" in desc:
+            return TransactionType.MSI_ADJUSTMENT
+
+        # Interest: * INTERESES EFI * or anything with INTERES
+        if "INTERES" in desc:
             return TransactionType.INTEREST
-        if "COMISION" in desc or "COMISIÓN" in desc:
-            return TransactionType.FEE
-        if "IVA" in desc or "I.V.A" in desc:
-            return TransactionType.TAX
-        if "ANUALIDAD" in desc or "CUOTA ANUAL" in desc:
-            return TransactionType.FEE
-        if is_credit:
-            return TransactionType.CREDIT
+
+        # MSI: installment pattern (XX DE YY) in description
+        if installment:
+            return TransactionType.MSI
+        if re.search(r'\d{2}\s+DE\s+\d{2,3}\s+EFECTIVO INMEDIATO', desc):
+            return TransactionType.MSI
+
+        # Remaining minus-sign transactions
+        if is_minus:
+            return TransactionType.PAYMENT
+
         return TransactionType.CHARGE
 
     def _should_skip(self, line: str) -> bool:
+        """Check if a line should be skipped (headers, totals, breakdowns)."""
         for pattern in self.SKIP_PATTERNS:
-            if re.match(pattern, line):
+            if pattern.match(line):
                 return True
         return False
