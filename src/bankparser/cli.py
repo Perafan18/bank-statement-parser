@@ -69,33 +69,35 @@ def parse(files, bank, fmt, output, no_fees, no_msi, charges_only, cardholder):
     categorizer = Categorizer(db)
     all_transactions: list[Transaction] = []
 
-    for file_path in files:
-        path = Path(file_path)
-        if not path.exists():
-            click.echo(f"⚠️  File not found: {path}", err=True)
-            continue
-        if path.suffix.lower() != ".pdf":
-            click.echo(f"⚠️  Skipping non-PDF: {path.name}", err=True)
-            continue
+    try:
+        for file_path in files:
+            path = Path(file_path)
+            if not path.exists():
+                click.echo(f"⚠️  File not found: {path}", err=True)
+                continue
+            if path.suffix.lower() != ".pdf":
+                click.echo(f"⚠️  Skipping non-PDF: {path.name}", err=True)
+                continue
 
-        click.echo(f"📄 Parsing: {path.name}...", err=True)
-        try:
-            result = registry.parse(path, bank=bank)
-        except ValueError as e:
-            click.echo(f"❌ {e}", err=True)
-            continue
+            click.echo(f"📄 Parsing: {path.name}...", err=True)
+            try:
+                result = registry.parse(path, bank=bank)
+            except Exception as e:
+                click.echo(f"❌ {e}", err=True)
+                continue
 
-        for w in result.warnings:
-            click.echo(f"  ⚠️  {w}", err=True)
+            for w in result.warnings:
+                click.echo(f"  ⚠️  {w}", err=True)
 
-        click.echo(f"  ✅ {result.transaction_count} transactions (bank: {result.info.bank})", err=True)
-        categorizer.categorize_all(result.transactions)
-        all_transactions.extend(result.transactions)
+            click.echo(f"  ✅ {result.transaction_count} transactions (bank: {result.info.bank})", err=True)
+            categorizer.categorize_all(result.transactions)
+            all_transactions.extend(result.transactions)
 
-    if not all_transactions:
-        click.echo("❌ No transactions found!", err=True)
-        sys.exit(1)
-    db.close()
+        if not all_transactions:
+            click.echo("❌ No transactions found!", err=True)
+            sys.exit(1)
+    finally:
+        db.close()
 
     # Filters
     if no_fees:
