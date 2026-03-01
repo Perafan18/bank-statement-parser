@@ -29,7 +29,7 @@ def get_db() -> Database:
 
 
 @click.group()
-@click.version_option(__version__, prog_name="bankparser")
+@click.version_option(__version__, prog_name="bankparse")
 def main():
     """🏦 Parse Mexican bank statement PDFs into CSV.
 
