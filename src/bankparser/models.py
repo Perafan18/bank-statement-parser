@@ -91,7 +91,6 @@ class StatementInfo:
     minimum_payment: float = 0.0
     credit_limit: float = 0.0
     annual_rate: float = 0.0
-    cat: float = 0.0
 
 
 @dataclass
