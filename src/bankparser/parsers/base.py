@@ -57,7 +57,10 @@ class BaseParser(ABC):
     def parse_mx_amount(amount_str: str) -> float:
         """Parse a Mexican-format amount string (e.g. '1,234.56') to float."""
         cleaned = amount_str.replace(',', '').replace('$', '').strip()
-        return float(cleaned)
+        try:
+            return float(cleaned)
+        except ValueError:
+            raise ValueError(f"Cannot parse amount: '{amount_str}'")
 
     @staticmethod
     def extract_text_from_pdf(pdf_path: Path) -> list[str]:

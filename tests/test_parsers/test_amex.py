@@ -33,6 +33,16 @@ class TestBaseParserHelpers:
     def test_parse_mx_amount_with_dollar_sign(self):
         assert BaseParser.parse_mx_amount("$1,500.00") == 1500.0
 
+    def test_parse_mx_amount_bad_input(self):
+        """OCR artifacts or empty strings should raise ValueError with context."""
+        with pytest.raises(ValueError, match="Cannot parse amount"):
+            BaseParser.parse_mx_amount("")
+
+    def test_parse_mx_amount_ocr_artifact(self):
+        """Letter O instead of digit 0 should raise ValueError with context."""
+        with pytest.raises(ValueError, match="Cannot parse amount"):
+            BaseParser.parse_mx_amount("1O4.50")
+
 
 class TestAmexParser:
     """Test Amex parser with the actual uploaded statement."""
