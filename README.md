@@ -27,19 +27,19 @@ pip install -e ".[dev]"
 
 ```bash
 # Parse a statement (auto-detects bank)
-bankparse statement.pdf
+bankparse parse statement.pdf
 
 # Specify bank and format
-bankparse statement.pdf --bank amex --format sure
+bankparse parse statement.pdf --bank amex --format sure
 
 # Multiple files at once
-bankparse *.pdf -f sure -o all_transactions.csv
+bankparse parse *.pdf -f sure -o all_transactions.csv
 
 # Only actual purchases (no fees, interest, MSI)
-bankparse statement.pdf --charges-only
+bankparse parse statement.pdf --charges-only
 
 # Filter by cardholder
-bankparse statement.pdf --cardholder haydee
+bankparse parse statement.pdf --cardholder haydee
 ```
 
 ## Category Management
