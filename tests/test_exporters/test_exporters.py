@@ -104,3 +104,28 @@ class TestMonarchExporter:
             reader = csv.DictReader(f)
             rows = list(reader)
             assert len(rows) == 7
+
+    def test_tags_column_uses_tags_not_cardholder(self, tmp_path):
+        """Tags column should contain tx.tags, not tx.cardholder."""
+        from bankparser.models import Transaction, TransactionType
+        from datetime import date
+
+        txs = [
+            Transaction(
+                date=date(2026, 1, 15),
+                description="TEST MERCHANT",
+                amount=100.00,
+                bank="bbva",
+                cardholder="JUAN GARCIA",
+                tags=["msi:03/12", "foreign"],
+            ),
+        ]
+        exp = MonarchExporter()
+        output = tmp_path / "monarch_tags.csv"
+        exp.export(txs, output)
+
+        with open(output) as f:
+            reader = csv.DictReader(f)
+            row = list(reader)[0]
+            assert row["Tags"] == "msi:03/12, foreign"
+            assert "JUAN GARCIA" not in row["Tags"]

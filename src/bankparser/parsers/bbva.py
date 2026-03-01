@@ -100,6 +100,11 @@ class BBVAParser(BaseParser):
         transactions = self._parse_regular_section(all_lines)
         transactions.extend(self._parse_msi_section(all_lines))
 
+        # Propagate cardholder from statement info to all transactions
+        if info.cardholder:
+            for tx in transactions:
+                tx.cardholder = info.cardholder
+
         return ParseResult(info=info, transactions=transactions, warnings=warnings)
 
     # ── Info extraction ───────────────────────────────────────────────────────
@@ -341,6 +346,11 @@ class BBVAParser(BaseParser):
             return TransactionType.MSI_ADJUSTMENT
         if "ALTA PARA MESES S/INTERESES" in desc:
             return TransactionType.MSI_ADJUSTMENT
+
+        # Tax: IVA on fees/interest (before INTEREST, since "IVA DE INTERESES"
+        # contains "INTERES" but should be classified as TAX)
+        if desc.startswith("IVA"):
+            return TransactionType.TAX
 
         # Interest: * INTERESES EFI * or anything with INTERES
         if "INTERES" in desc:

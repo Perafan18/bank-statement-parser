@@ -116,6 +116,11 @@ class HSBCParser(BaseParser):
 
         transactions = self._parse_transactions(all_lines, warnings)
 
+        # Propagate cardholder from statement info to all transactions
+        if info.cardholder:
+            for tx in transactions:
+                tx.cardholder = info.cardholder
+
         return ParseResult(info=info, transactions=transactions, warnings=warnings)
 
     # ── Info extraction ───────────────────────────────────────────────────────

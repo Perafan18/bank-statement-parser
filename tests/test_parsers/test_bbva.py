@@ -160,6 +160,15 @@ class TestBBVARegularSection:
         assert inst.tx_type == TransactionType.MSI
         assert inst.installment == "03 DE 03"
 
+    def test_classify_iva_as_tax(self, parser):
+        """IVA description should be classified as TAX."""
+        assert parser._classify("IVA APLICABLE", False) == TransactionType.TAX
+        assert parser._classify("IVA DE INTERESES", False) == TransactionType.TAX
+
+    def test_classify_interest_not_iva(self, parser):
+        """INTERESES should still be INTEREST when not starting with IVA."""
+        assert parser._classify("* INTERESES EFI *", False) == TransactionType.INTEREST
+
 
 # ── MSI sin intereses section fixture ─────────────────────────────────────
 

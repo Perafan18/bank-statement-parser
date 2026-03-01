@@ -20,7 +20,7 @@ class MonarchExporter(BaseExporter):
             f"{tx.amount:.2f}",
             tx.category,
             bank_label,
-            tx.cardholder,
+            ", ".join(tx.tags) if tx.tags else "",
             f"{tx.original_currency} {tx.original_amount:.2f}" if tx.original_amount else "",
             tx.original_currency or tx.currency,
         ]
