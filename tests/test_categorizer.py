@@ -72,6 +72,15 @@ class TestDatabase:
         # With a different bank, the rule shouldn't match (unless * rules match)
         assert tmp_db.match_category("SPECIAL_AMEX STORE", bank="bbva") == "Uncategorized"
 
+    def test_add_duplicate_category_does_not_corrupt_connection(self, tmp_db):
+        """After a duplicate category insert fails, the connection should still work."""
+        tmp_db.add_category("TestCat")
+        with pytest.raises(Exception):
+            tmp_db.add_category("TestCat")  # duplicate
+        # Connection should still be usable
+        cats = tmp_db.list_categories()
+        assert any(c["name"] == "TestCat" for c in cats)
+
     def test_list_rules_filtered_by_bank(self, tmp_db):
         tmp_db.add_rule("BBVA_ONLY", "Shopping", bank="bbva")
         rules = tmp_db.list_rules(bank="bbva")

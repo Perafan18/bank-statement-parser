@@ -257,11 +257,15 @@ class Database:
 
     def add_category(self, name: str, parent: Optional[str] = None, icon: str = ""):
         """Add a new category."""
-        self.conn.execute(
-            "INSERT INTO categories (name, parent_name, icon) VALUES (?, ?, ?)",
-            (name, parent, icon),
-        )
-        self.conn.commit()
+        try:
+            self.conn.execute(
+                "INSERT INTO categories (name, parent_name, icon) VALUES (?, ?, ?)",
+                (name, parent, icon),
+            )
+            self.conn.commit()
+        except sqlite3.IntegrityError:
+            self.conn.rollback()
+            raise
 
     def remove_category(self, name: str):
         """Remove a category and its associated rules."""
@@ -288,12 +292,16 @@ class Database:
 
     def add_rule(self, pattern: str, category: str, bank: str = "*", priority: int = 10):
         """Add a new categorization rule."""
-        self.conn.execute(
-            "INSERT INTO category_rules (pattern, category_name, bank, priority) "
-            "VALUES (?, ?, ?, ?)",
-            (pattern, category, bank, priority),
-        )
-        self.conn.commit()
+        try:
+            self.conn.execute(
+                "INSERT INTO category_rules (pattern, category_name, bank, priority) "
+                "VALUES (?, ?, ?, ?)",
+                (pattern, category, bank, priority),
+            )
+            self.conn.commit()
+        except sqlite3.IntegrityError:
+            self.conn.rollback()
+            raise
 
     def remove_rule(self, rule_id: int):
         """Remove a rule by ID."""
