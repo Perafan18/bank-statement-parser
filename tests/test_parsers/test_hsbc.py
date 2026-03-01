@@ -6,6 +6,7 @@ a real HSBC TDC PDF statement (with anonymized data).
 """
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -313,3 +314,26 @@ class TestHSBCOCRDateFix:
         assert len(transactions) == 1
         assert transactions[0].date == date(2026, 1, 2)
         assert transactions[0].amount == 558.03
+
+
+class TestHSBCOCRDependency:
+    """Tests for OCR dependency guard."""
+
+    def test_parse_raises_without_ocr(self, monkeypatch):
+        """parse() should raise RuntimeError if OCR deps are missing."""
+        import bankparser.parsers.hsbc as hsbc_mod
+        monkeypatch.setattr(hsbc_mod, "_OCR_AVAILABLE", False)
+        parser = HSBCParser()
+        with pytest.raises(RuntimeError, match="pip install"):
+            parser.parse(Path("/fake/file.pdf"))
+
+    def test_can_parse_returns_false_without_ocr(self, monkeypatch, tmp_path):
+        """can_parse() should return False gracefully if OCR deps are missing."""
+        import bankparser.parsers.hsbc as hsbc_mod
+        monkeypatch.setattr(hsbc_mod, "_OCR_AVAILABLE", False)
+        # Create a dummy PDF that pdfplumber can't identify as HSBC
+        dummy = tmp_path / "test.pdf"
+        dummy.write_bytes(b"%PDF-1.4 fake")
+        parser = HSBCParser()
+        # Should not raise, just return False
+        assert parser.can_parse(dummy) is False

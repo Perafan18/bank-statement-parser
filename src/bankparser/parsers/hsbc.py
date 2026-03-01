@@ -26,6 +26,13 @@ from pathlib import Path
 from bankparser.models import ParseResult, StatementInfo, Transaction, TransactionType
 from bankparser.parsers.base import BaseParser
 
+try:
+    import pdf2image  # noqa: F401
+    import pytesseract  # noqa: F401
+    _OCR_AVAILABLE = True
+except ImportError:
+    _OCR_AVAILABLE = False
+
 MONTHS_ABBREV = {
     "ene": 1, "feb": 2, "mar": 3, "abr": 4,
     "may": 5, "jun": 6, "jul": 7, "ago": 8,
@@ -42,10 +49,15 @@ class HSBCParser(BaseParser):
 
     def can_parse(self, pdf_path: Path) -> bool:
         # Try pdfplumber first (fast)
-        text = self.extract_first_page_text(pdf_path).lower()
-        if "hsbc" in text:
-            return True
+        try:
+            text = self.extract_first_page_text(pdf_path).lower()
+            if "hsbc" in text:
+                return True
+        except Exception:
+            pass
         # Fall back to OCR (slow but necessary for CID-encoded fonts)
+        if not _OCR_AVAILABLE:
+            return False
         try:
             pages = self.extract_text_with_ocr(pdf_path, dpi=150)
             if pages:
@@ -104,6 +116,11 @@ class HSBCParser(BaseParser):
     # ── Main parse ────────────────────────────────────────────────────────────
 
     def parse(self, pdf_path: Path) -> ParseResult:
+        if not _OCR_AVAILABLE:
+            raise RuntimeError(
+                "HSBC parsing requires OCR dependencies. "
+                "Install with: pip install 'bankparser[ocr]'"
+            )
         pages_text = self.extract_text_with_ocr(pdf_path)
         warnings: list[str] = []
 
