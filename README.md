@@ -1,6 +1,6 @@
 # Bank Statement Parser
 
-[![CI](https://github.com/your-username/bank-statement-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/bank-statement-parser/actions/workflows/ci.yml)
+[![CI](https://github.com/Perafan18/bank-statement-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/Perafan18/bank-statement-parser/actions/workflows/ci.yml)
 
 Parse Mexican bank statement PDFs (American Express, BBVA, HSBC) into CSV files
 compatible with personal finance apps like [Sure](https://github.com/we-promise/sure),
@@ -20,7 +20,7 @@ Monarch Money, and others.
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/bank-statement-parser.git
+git clone https://github.com/Perafan18/bank-statement-parser.git
 cd bank-statement-parser
 pip install -e ".[dev]"
 ```

@@ -38,7 +38,7 @@ Los parsers actuales no cubren todos los edge cases. Si encuentras transacciones
 ## Setup de desarrollo
 
 ```bash
-git clone https://github.com/your-username/bank-statement-parser.git
+git clone https://github.com/Perafan18/bank-statement-parser.git
 cd bank-statement-parser
 pip install -e ".[dev]"
 ```
