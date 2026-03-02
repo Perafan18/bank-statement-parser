@@ -1,0 +1,45 @@
+site_name: Bank Statement Parser
+site_url: https://Perafan18.github.io/bank-statement-parser/
+site_description: Parse Mexican bank statement PDFs (Amex, BBVA, HSBC) into CSV
+site_author: Pedro Perafan
+repo_url: https://github.com/Perafan18/bank-statement-parser
+repo_name: Perafan18/bank-statement-parser
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Cambiar a modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Cambiar a modo claro
+  features:
+    - content.code.copy
+    - navigation.sections
+
+markdown_extensions:
+  - tables
+  - admonitions
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Uso: usage.md
+  - Agregar un banco: adding-a-parser.md
+  - Agregar un formato: adding-an-exporter.md
+  - Arquitectura: architecture.md
+  - Contribuir: contributing.md
+  - Changelog: changelog.md
