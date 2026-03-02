@@ -12,6 +12,21 @@ requires-python = ">=3.10"
 authors = [
     {name = "Pedro Perafan"},
 ]
+keywords = ["bank", "statement", "parser", "pdf", "csv", "mexico", "amex", "bbva", "hsbc", "finance"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Utilities",
+]
 dependencies = [
     "pdfplumber>=0.10.0",
     "click>=8.0",
@@ -39,6 +54,12 @@ dev = [
 
 [project.scripts]
 bankparse = "bankparser.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Perafan18/bank-statement-parser"
+Repository = "https://github.com/Perafan18/bank-statement-parser"
+Issues = "https://github.com/Perafan18/bank-statement-parser/issues"
+Documentation = "https://Perafan18.github.io/bank-statement-parser/"
 
 [tool.setuptools.packages.find]
 where = ["src"]
