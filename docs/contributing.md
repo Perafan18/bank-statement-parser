@@ -1,10 +1,8 @@
-# Contributing
+# Contribuir
 
-This page is also available as [CONTRIBUTING.md](https://github.com/Perafan18/bank-statement-parser/blob/main/CONTRIBUTING.md) in the repository.
+Esta pagina tambien esta disponible como [CONTRIBUTING.md](https://github.com/Perafan18/bank-statement-parser/blob/main/CONTRIBUTING.md) en el repositorio.
 
 ---
-
-# Contribuir a Bank Statement Parser
 
 Gracias por tu interés en contribuir. Este proyecto busca cubrir la mayor cantidad de bancos mexicanos posible, y toda ayuda es bienvenida.
 
@@ -23,7 +21,7 @@ Esta es la contribución más valiosa. Si tienes estados de cuenta de un banco q
 5. Escribe tests con fixtures inline en `tests/test_parsers/test_tubanco.py`
 6. (Opcional) Agrega reglas de categorización en `database.py`
 
-El README tiene una [guía paso a paso completa](README.md#adding-a-new-bank-parser) con código de referencia. Usa `BBVAParser` como ejemplo — es el parser más limpio.
+La guía [Agregar un nuevo banco](adding-a-parser.md) tiene instrucciones paso a paso completas con código de referencia. Usa `BBVAParser` como ejemplo — es el parser más limpio.
 
 ### Agregar un formato de exportación
 

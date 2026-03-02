@@ -1,86 +1,86 @@
-# Architecture
+# Arquitectura
 
 ```
 PDF ──→ Parser (auto-detect) ──→ ParseResult ──→ Categorizer ──→ Exporter ──→ CSV
          │                         │                │
-         │ can_parse()             │ StatementInfo   │ SQLite rules
-         │ parse()                 │ Transaction[]   │ (priority-ordered)
+         │ can_parse()             │ StatementInfo   │ Reglas SQLite
+         │ parse()                 │ Transaction[]   │ (ordenadas por prioridad)
          │                         │ warnings[]      │
          ▼                         ▼                 ▼
     ParserRegistry            models.py          database.py
 ```
 
-## Core models (`models.py`)
+## Modelos principales (`models.py`)
 
-| Model | Purpose |
-|-------|---------|
-| `Transaction` | A single transaction. Every parser produces these, every exporter consumes them. Fields: date, description, amount, currency, bank, cardholder, tx_type, category, installment, reference, original_amount, original_currency, exchange_rate, tags |
+| Modelo | Proposito |
+|--------|-----------|
+| `Transaction` | Una transaccion individual. Cada parser las produce, cada exporter las consume. Campos: date, description, amount, currency, bank, cardholder, tx_type, category, installment, reference, original_amount, original_currency, exchange_rate, tags |
 | `TransactionType` | Enum: `CHARGE`, `PAYMENT`, `CREDIT`, `FEE`, `INTEREST`, `TAX`, `MSI`, `MSI_ADJUSTMENT`, `TRANSFER` |
-| `StatementInfo` | Statement metadata: bank, account_number, cardholder, period dates, balances |
-| `ParseResult` | Container: `info` (StatementInfo) + `transactions` (list) + `warnings` (list) |
+| `StatementInfo` | Metadatos del estado de cuenta: bank, account_number, cardholder, fechas del periodo, saldos |
+| `ParseResult` | Contenedor: `info` (StatementInfo) + `transactions` (lista) + `warnings` (lista) |
 
 ## Parsers (`parsers/`)
 
-Registry pattern with auto-detection. Each parser extends `BaseParser`:
+Patron registry con auto-deteccion. Cada parser extiende `BaseParser`:
 
-| Parser | Bank | Text extraction | Notes |
-|--------|------|-----------------|-------|
-| `AmexParser` | American Express Mexico | pdfplumber | Multi-cardholder, MSI, foreign currency (USD), RFC references |
-| `BBVAParser` | BBVA Mexico (Bancomer) TDC | pdfplumber | Two-section parsing (regular + MSI sin/con intereses), `+/-` sign convention |
-| `HSBCParser` | HSBC Mexico TDC | OCR (pytesseract) | CID-encoded fonts require OCR, extensive artifact cleanup |
+| Parser | Banco | Extraccion de texto | Notas |
+|--------|-------|---------------------|-------|
+| `AmexParser` | American Express Mexico | pdfplumber | Multi-tarjetahabiente, MSI, moneda extranjera (USD), referencias RFC |
+| `BBVAParser` | BBVA Mexico (Bancomer) TDC | pdfplumber | Parseo en dos secciones (regular + MSI sin/con intereses), convencion de signo `+/-` |
+| `HSBCParser` | HSBC Mexico TDC | OCR (pytesseract) | Fuentes CID-encoded requieren OCR, limpieza extensiva de artefactos |
 
 ## Exporters (`exporters/`)
 
-Registry pattern. Each exporter extends `BaseExporter`:
+Patron registry. Cada exporter extiende `BaseExporter`:
 
-| Exporter | Format | Target app |
-|----------|--------|------------|
-| `GenericExporter` | All 14 fields | Raw analysis |
-| `SureExporter` | 8 fields with tags/notes | Sure / Maybe Finance |
-| `MonarchExporter` | 8 fields with account label | Monarch Money |
+| Exporter | Formato | App destino |
+|----------|---------|-------------|
+| `GenericExporter` | 14 campos completos | Analisis raw |
+| `SureExporter` | 8 campos con tags/notas | Sure / Maybe Finance |
+| `MonarchExporter` | 8 campos con label de cuenta | Monarch Money |
 
-## Database (`database.py`)
+## Base de datos (`database.py`)
 
-SQLite at `~/.bankparser/bankparser.db` with two tables:
+SQLite en `~/.bankparser/bankparser.db` con dos tablas:
 
-- **`categories`**: name (unique), parent_name, icon
-- **`category_rules`**: pattern, category_name, bank (`*` = all), priority (higher = checked first)
+- **`categories`**: name (unico), parent_name, icon
+- **`category_rules`**: pattern, category_name, bank (`*` = todos), priority (mayor = se revisa primero)
 
-Seeded on first run with ~22 categories (Shopping, Food & Dining, Groceries, Transportation, Subscriptions, etc.) and ~80 rules for common Mexican merchants and bank-specific patterns.
+Se inicializa en la primera ejecucion con ~22 categorias (Shopping, Food & Dining, Groceries, Transportation, Subscriptions, etc.) y ~80 reglas para comercios mexicanos comunes y patrones especificos por banco.
 
-## Project Structure
+## Estructura del proyecto
 
 ```
 bank-statement-parser/
 ├── src/bankparser/
-│   ├── __init__.py          # Package version
-│   ├── cli.py               # Click CLI: parse, categories, rules, info
+│   ├── __init__.py          # Version del paquete
+│   ├── cli.py               # CLI con Click: parse, categories, rules, info
 │   ├── models.py            # Transaction, StatementInfo, ParseResult, TransactionType
-│   ├── database.py          # SQLite schema, seed data, CRUD, rule matching
-│   ├── categorizer.py       # Type overrides → rule matching → "Uncategorized"
+│   ├── database.py          # Schema SQLite, datos semilla, CRUD, matching de reglas
+│   ├── categorizer.py       # Overrides por tipo → matching de reglas → "Uncategorized"
 │   ├── parsers/
 │   │   ├── __init__.py      # ParserRegistry + create_default_registry()
-│   │   ├── base.py          # BaseParser: abstract interface + shared helpers
+│   │   ├── base.py          # BaseParser: interfaz abstracta + helpers compartidos
 │   │   ├── amex.py          # American Express Mexico
 │   │   ├── bbva.py          # BBVA Mexico (Bancomer) TDC
-│   │   └── hsbc.py          # HSBC Mexico TDC (OCR-based)
+│   │   └── hsbc.py          # HSBC Mexico TDC (basado en OCR)
 │   └── exporters/
-│       ├── __init__.py      # Exporter registry
-│       ├── base.py          # BaseExporter: abstract interface + CSV writing
-│       ├── generic.py       # All fields export
-│       ├── sure.py          # Sure / Maybe Finance format
-│       └── monarch.py       # Monarch Money format
+│       ├── __init__.py      # Registry de exporters
+│       ├── base.py          # BaseExporter: interfaz abstracta + escritura CSV
+│       ├── generic.py       # Exportacion de todos los campos
+│       ├── sure.py          # Formato Sure / Maybe Finance
+│       └── monarch.py       # Formato Monarch Money
 ├── tests/
-│   ├── conftest.py          # Shared fixtures: tmp_db, sample_transactions
-│   ├── test_models.py       # Transaction, ParseResult tests
-│   ├── test_categorizer.py  # Database + Categorizer tests
+│   ├── conftest.py          # Fixtures compartidos: tmp_db, sample_transactions
+│   ├── test_models.py       # Tests de Transaction, ParseResult
+│   ├── test_categorizer.py  # Tests de Database + Categorizer
 │   ├── test_parsers/
-│   │   ├── test_amex.py     # Amex parser + BaseParser helper tests
-│   │   ├── test_bbva.py     # BBVA parser tests (inline text fixtures)
-│   │   └── test_hsbc.py     # HSBC parser tests (inline text fixtures)
+│   │   ├── test_amex.py     # Tests del parser Amex + helpers de BaseParser
+│   │   ├── test_bbva.py     # Tests del parser BBVA (fixtures inline)
+│   │   └── test_hsbc.py     # Tests del parser HSBC (fixtures inline)
 │   └── test_exporters/
-│       └── test_exporters.py  # All exporter tests
+│       └── test_exporters.py  # Tests de todos los exporters
 ├── pyproject.toml
-├── CLAUDE.md                # AI assistant instructions
+├── CLAUDE.md                # Instrucciones para asistente AI
 └── README.md
 ```

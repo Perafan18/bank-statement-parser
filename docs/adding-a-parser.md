@@ -1,10 +1,10 @@
-# Adding a New Bank Parser
+# Agregar un nuevo banco
 
-This is a step-by-step guide. Use the BBVA parser (`src/bankparser/parsers/bbva.py`) as the reference implementation since it's the cleanest example.
+Esta es una guia paso a paso. Usa el parser de BBVA (`src/bankparser/parsers/bbva.py`) como implementacion de referencia ya que es el ejemplo mas limpio.
 
-## Step 1: Study the PDF
+## Paso 1: Estudiar el PDF
 
-Before writing any code, extract the text from your bank's PDF to understand its structure:
+Antes de escribir codigo, extrae el texto del PDF de tu banco para entender su estructura:
 
 ```python
 import pdfplumber
@@ -17,18 +17,18 @@ with pdfplumber.open("statement.pdf") as pdf:
         print(page.extract_text())
 ```
 
-If pdfplumber returns garbled text (e.g. `(cid:XX)` characters), the PDF uses CID-encoded fonts and you'll need OCR. See the HSBC parser for how to handle this.
+Si pdfplumber devuelve texto ilegible (ej. caracteres `(cid:XX)`), el PDF usa fuentes CID-encoded y necesitaras OCR. Consulta el parser de HSBC para ver como manejarlo.
 
-Identify:
-- **Bank identifiers** on the first page (for `can_parse()`)
-- **Statement metadata**: account number, period, cardholder name, balances
-- **Transaction format**: what columns exist, how dates are formatted, how credits vs charges are distinguished
-- **Section markers**: headers like "CARGOS Y ABONOS", totals lines, page breaks
-- **Special transactions**: MSI installments, foreign currency, fees, interest
+Identifica:
+- **Identificadores del banco** en la primera pagina (para `can_parse()`)
+- **Metadatos del estado de cuenta**: numero de cuenta, periodo, nombre del tarjetahabiente, saldos
+- **Formato de transacciones**: que columnas existen, como se formatean las fechas, como se distinguen creditos vs cargos
+- **Marcadores de seccion**: encabezados como "CARGOS Y ABONOS", lineas de totales, saltos de pagina
+- **Transacciones especiales**: mensualidades MSI, moneda extranjera, comisiones, intereses
 
-## Step 2: Create the parser file
+## Paso 2: Crear el archivo del parser
 
-Create `src/bankparser/parsers/mybank.py`:
+Crea `src/bankparser/parsers/mibanco.py`:
 
 ```python
 """Parser for MyBank Mexico credit card statements."""
@@ -48,35 +48,35 @@ class MyBankParser(BaseParser):
 
     bank_name = "mybank"
 
-    # ── Detection ─────────────────────────────────────────────────────────
+    # ── Deteccion ─────────────────────────────────────────────────────────
 
     def can_parse(self, pdf_path: Path) -> bool:
-        """Check if this PDF belongs to MyBank.
+        """Verifica si este PDF pertenece a MyBank.
 
-        Look for bank-specific text on the first page. Use multiple
-        identifiers to avoid false positives (e.g. a BBVA statement
-        that mentions "amex" in an address).
+        Busca texto especifico del banco en la primera pagina. Usa multiples
+        identificadores para evitar falsos positivos (ej. un estado de BBVA
+        que menciona "amex" en una direccion).
         """
         text = self.extract_first_page_text(pdf_path).lower()
         return "mybank" in text or "my bank mexico" in text
 
     # ── Regexes ───────────────────────────────────────────────────────────
 
-    # Define regex patterns as class-level compiled constants.
-    # Use re.compile() for performance (these run on every line).
+    # Define patrones regex como constantes compiladas a nivel de clase.
+    # Usa re.compile() para rendimiento (se ejecutan en cada linea).
     #
-    # Example: transaction line "15/01/2026 OXXO TONALA $48.50"
+    # Ejemplo: linea de transaccion "15/01/2026 OXXO TONALA $48.50"
     TX_RE = re.compile(
         r'^(\d{2}/\d{2}/\d{4})\s+(.+?)\s+\$([\d,]+\.\d{2})\s*$'
     )
 
-    # Lines to skip (headers, totals, noise)
+    # Lineas a ignorar (encabezados, totales, ruido)
     SKIP_PATTERNS = [
-        re.compile(r'^FECHA\s+DESCRIPCION'),  # table header
-        re.compile(r'^TOTAL'),                  # totals row
+        re.compile(r'^FECHA\s+DESCRIPCION'),  # encabezado de tabla
+        re.compile(r'^TOTAL'),                  # fila de totales
     ]
 
-    # ── Main parse ────────────────────────────────────────────────────────
+    # ── Parseo principal ──────────────────────────────────────────────────
 
     def parse(self, pdf_path: Path) -> ParseResult:
         pages_text = self.extract_text_from_pdf(pdf_path)
@@ -85,29 +85,29 @@ class MyBankParser(BaseParser):
         full_text = "\n".join(pages_text)
         info = self._extract_info(full_text)
 
-        # Collect all lines from all pages
+        # Recopilar todas las lineas de todas las paginas
         all_lines: list[str] = []
         for text in pages_text:
             all_lines.extend(text.split('\n'))
 
         transactions = self._parse_transactions(all_lines, warnings)
 
-        # Propagate cardholder from statement info
+        # Propagar tarjetahabiente desde la info del estado de cuenta
         if info.cardholder:
             for tx in transactions:
                 tx.cardholder = info.cardholder
 
         return ParseResult(info=info, transactions=transactions, warnings=warnings)
 
-    # ── Info extraction ───────────────────────────────────────────────────
+    # ── Extraccion de info ────────────────────────────────────────────────
 
     def _extract_info(self, text: str) -> StatementInfo:
         info = StatementInfo(bank=self.bank_name)
-        # Extract account number, period, cardholder, etc. with regex
+        # Extrae numero de cuenta, periodo, tarjetahabiente, etc. con regex
         # ...
         return info
 
-    # ── Transaction parsing ───────────────────────────────────────────────
+    # ── Parseo de transacciones ───────────────────────────────────────────
 
     def _parse_transactions(
         self, lines: list[str], warnings: list[str],
@@ -123,12 +123,12 @@ class MyBankParser(BaseParser):
             if not match:
                 continue
 
-            # Parse fields from the match
+            # Parsear campos del match
             date_str = match.group(1)
             description = match.group(2).strip()
             amount = self.parse_mx_amount(match.group(3))
 
-            # Classify the transaction
+            # Clasificar la transaccion
             tx_type = self._classify(description, is_credit=False)
 
             tx = Transaction(
@@ -146,7 +146,7 @@ class MyBankParser(BaseParser):
     # ── Helpers ────────────────────────────────────────────────────────────
 
     def _classify(self, description: str, is_credit: bool) -> TransactionType:
-        """Classify a transaction based on description and sign."""
+        """Clasifica una transaccion segun su descripcion y signo."""
         desc = description.upper()
         if "PAGO" in desc:
             return TransactionType.PAYMENT
@@ -161,51 +161,51 @@ class MyBankParser(BaseParser):
         return TransactionType.CHARGE
 
     def _should_skip(self, line: str) -> bool:
-        """Check if a line is a header, total, or noise."""
+        """Verifica si una linea es encabezado, total, o ruido."""
         for pattern in self.SKIP_PATTERNS:
             if pattern.match(line):
                 return True
         return False
 ```
 
-## Step 3: Register the parser
+## Paso 3: Registrar el parser
 
-In `src/bankparser/parsers/__init__.py`, add your parser to `create_default_registry()`:
+En `src/bankparser/parsers/__init__.py`, agrega tu parser a `create_default_registry()`:
 
 ```python
 def create_default_registry() -> ParserRegistry:
     from bankparser.parsers.amex import AmexParser
     from bankparser.parsers.bbva import BBVAParser
     from bankparser.parsers.hsbc import HSBCParser
-    from bankparser.parsers.mybank import MyBankParser  # add import
+    from bankparser.parsers.mybank import MyBankParser  # agregar import
 
     registry = ParserRegistry()
     registry.register(AmexParser())
     registry.register(BBVAParser())
     registry.register(HSBCParser())
-    registry.register(MyBankParser())  # register it
+    registry.register(MyBankParser())  # registrarlo
     return registry
 ```
 
-## Step 4: Add bank-specific categorization rules
+## Paso 4: Agregar reglas de categorizacion del banco
 
-In `src/bankparser/database.py`, add rules to `DEFAULT_RULES`:
+En `src/bankparser/database.py`, agrega reglas a `DEFAULT_RULES`:
 
 ```python
 DEFAULT_RULES = [
-    # ... existing rules ...
+    # ... reglas existentes ...
 
-    # MyBank-specific
+    # Especificas de MyBank
     ("PAGO DOMICILIADO", "Payment", "mybank", 100),
     ("COMISION MENSUAL", "Fees", "mybank", 100),
 ]
 ```
 
-Note: these only apply to new databases. Existing users must add rules manually via the CLI.
+Nota: estas solo aplican a bases de datos nuevas. Usuarios existentes deben agregar reglas manualmente via CLI.
 
-## Step 5: Write tests
+## Paso 5: Escribir tests
 
-Create `tests/test_parsers/test_mybank.py`. Use inline text fixtures (not real PDFs) so tests run anywhere:
+Crea `tests/test_parsers/test_mybank.py`. Usa fixtures inline (no PDFs reales) para que los tests corran en cualquier lado:
 
 ```python
 """Tests for the MyBank parser."""
@@ -216,7 +216,7 @@ from bankparser.models import TransactionType
 from bankparser.parsers.mybank import MyBankParser
 
 
-# Use real text extracted from a statement (redacted)
+# Usa texto real extraido de un estado de cuenta (redactado)
 MYBANK_INFO_TEXT = """MyBank Mexico S.A.
 Numero de cuenta: 1234567890
 Periodo: 01/01/2026 al 31/01/2026
@@ -257,31 +257,31 @@ class TestMyBankParser:
         assert parser._classify("OXXO TONALA", False) == TransactionType.CHARGE
 ```
 
-Run tests: `pytest tests/test_parsers/test_mybank.py -v`
+Ejecuta tests: `pytest tests/test_parsers/test_mybank.py -v`
 
-## Step 6: Test with a real PDF
+## Paso 6: Probar con un PDF real
 
-Put a real (redacted) statement in `samples/mybank/` (excluded from git by `*.pdf` in `.gitignore`):
+Pon un estado de cuenta real (redactado) en `samples/mybank/` (excluido de git por `*.pdf` en `.gitignore`):
 
 ```bash
 bankparse parse samples/mybank/statement.pdf --bank mybank
 ```
 
-## BaseParser helpers available to all parsers
+## Helpers de BaseParser disponibles para todos los parsers
 
-| Helper | Description |
+| Helper | Descripcion |
 |--------|-------------|
-| `parse_spanish_date(day, month_name, year)` | Full Spanish month names: "Enero", "Febrero", etc. |
-| `parse_mx_amount(amount_str)` | Mexican format: `"$1,234.56"` → `1234.56`. Raises `ValueError` with context on bad input. |
-| `extract_text_from_pdf(pdf_path)` | Returns `list[str]` (one string per page) via pdfplumber |
-| `extract_first_page_text(pdf_path)` | Returns first page text only (fast, for detection) |
-| `extract_text_with_ocr(pdf_path, dpi, psm)` | OCR via pytesseract + pdf2image. Requires `[ocr]` extras + system packages. |
+| `parse_spanish_date(day, month_name, year)` | Nombres completos de meses en espanol: "Enero", "Febrero", etc. |
+| `parse_mx_amount(amount_str)` | Formato mexicano: `"$1,234.56"` -> `1234.56`. Lanza `ValueError` con contexto si el input es invalido. |
+| `extract_text_from_pdf(pdf_path)` | Devuelve `list[str]` (un string por pagina) via pdfplumber |
+| `extract_first_page_text(pdf_path)` | Devuelve solo el texto de la primera pagina (rapido, para deteccion) |
+| `extract_text_with_ocr(pdf_path, dpi, psm)` | OCR via pytesseract + pdf2image. Requiere extras `[ocr]` + paquetes del sistema. |
 
-## Common patterns in Mexican bank statements
+## Patrones comunes en estados de cuenta mexicanos
 
-- **Dates**: `DD de Mes` (Amex), `DD-mmm-YYYY` (BBVA/HSBC), `DD/MM/YYYY`
-- **Amounts**: Always `$X,XXX.XX` format with comma thousands separator
-- **Credits/payments**: Indicated by `-` sign, `CR` suffix, or separate column
-- **MSI**: "Meses sin intereses" installments, usually in a separate section
-- **Foreign currency**: Continuation line with original amount, currency code, and exchange rate
-- **IVA**: Tax on fees/interest, usually a separate line item
+- **Fechas**: `DD de Mes` (Amex), `DD-mmm-YYYY` (BBVA/HSBC), `DD/MM/YYYY`
+- **Montos**: Siempre formato `$X,XXX.XX` con coma como separador de miles
+- **Creditos/pagos**: Indicados por signo `-`, sufijo `CR`, o columna separada
+- **MSI**: Mensualidades "sin intereses", usualmente en seccion separada
+- **Moneda extranjera**: Linea de continuacion con monto original, codigo de divisa y tipo de cambio
+- **IVA**: Impuesto sobre comisiones/intereses, usualmente en linea separada

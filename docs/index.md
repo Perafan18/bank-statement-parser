@@ -1,21 +1,21 @@
 # Bank Statement Parser
 
-Parse Mexican bank statement PDFs (American Express, BBVA, HSBC) into CSV files
-compatible with personal finance apps like [Sure](https://github.com/we-promise/sure),
-Monarch Money, and others.
+Convierte estados de cuenta bancarios mexicanos en PDF (American Express, BBVA, HSBC) a archivos CSV
+compatibles con apps de finanzas personales como [Sure](https://github.com/we-promise/sure),
+Monarch Money, y otras.
 
-## Features
+## Funcionalidades
 
-- **Multi-bank support**: Amex, BBVA, HSBC Mexico with auto-detection
-- **Smart categorization**: SQLite-backed rules with priority, bank-specific patterns, and ~80 pre-seeded rules
-- **Multiple export formats**: Generic (all fields), Sure/Maybe Finance, Monarch Money
-- **MSI tracking**: Installment info preserved (cargo X de Y), both "sin intereses" and "con intereses"
-- **Foreign currency**: Original amount, currency code, and exchange rate preserved
-- **Multi-cardholder**: Distinguishes titular vs additional cardholders (Amex)
-- **Filtering**: By cardholder, transaction type, fees, MSI, charges-only
-- **OCR fallback**: HSBC statements with CID-encoded fonts are parsed via Tesseract OCR
+- **Soporte multi-banco**: Amex, BBVA, HSBC Mexico con auto-deteccion
+- **Categorizacion inteligente**: Reglas en SQLite con prioridad, patrones por banco, y ~80 reglas pre-configuradas
+- **Multiples formatos de exportacion**: Generico (todos los campos), Sure/Maybe Finance, Monarch Money
+- **Seguimiento de MSI**: Info de mensualidades preservada (cargo X de Y), tanto "sin intereses" como "con intereses"
+- **Moneda extranjera**: Monto original, codigo de divisa y tipo de cambio preservados
+- **Multi-tarjetahabiente**: Distingue titular vs adicionales (Amex)
+- **Filtros**: Por tarjetahabiente, tipo de transaccion, comisiones, MSI, solo cargos
+- **OCR de respaldo**: Estados de cuenta HSBC con fuentes CID-encoded se parsean via Tesseract OCR
 
-## Installation
+## Instalacion
 
 ```bash
 git clone https://github.com/Perafan18/bank-statement-parser.git
@@ -23,48 +23,48 @@ cd bank-statement-parser
 pip install -e ".[dev]"
 ```
 
-### OCR support (required for HSBC)
+### Soporte OCR (requerido para HSBC)
 
-HSBC Mexico statements use CID-encoded fonts that pdfplumber cannot decode. To parse HSBC statements, install the OCR dependencies:
+Los estados de cuenta de HSBC Mexico usan fuentes CID-encoded que pdfplumber no puede decodificar. Para parsear estados de HSBC, instala las dependencias de OCR:
 
 ```bash
-# Python packages
+# Paquetes de Python
 pip install -e ".[ocr]"
 
-# System packages (Ubuntu/Debian)
+# Paquetes del sistema (Ubuntu/Debian)
 sudo apt install tesseract-ocr tesseract-ocr-spa poppler-utils
 
 # macOS
 brew install tesseract poppler
 ```
 
-Without these, BBVA and Amex statements will work normally, but HSBC parsing will show a clear error message with install instructions.
+Sin estos paquetes, los estados de BBVA y Amex funcionan normalmente, pero el parseo de HSBC mostrara un mensaje de error claro con instrucciones de instalacion.
 
-## Quick Start
+## Inicio rapido
 
 ```bash
-# Parse a statement (auto-detects bank)
+# Parsear un estado de cuenta (auto-detecta el banco)
 bankparse parse statement.pdf
 
-# Specify bank and format
+# Especificar banco y formato
 bankparse parse statement.pdf --bank amex --format sure
 
-# Multiple files at once
+# Multiples archivos a la vez
 bankparse parse *.pdf -f sure -o all_transactions.csv
 
-# Only actual purchases (no fees, interest, MSI)
+# Solo compras reales (sin comisiones, intereses, MSI)
 bankparse parse statement.pdf --charges-only
 
-# Exclude fees and interest but keep everything else
+# Excluir comisiones e intereses pero mantener todo lo demas
 bankparse parse statement.pdf --no-fees
 
-# Exclude MSI installments
+# Excluir mensualidades MSI
 bankparse parse statement.pdf --no-msi
 
-# Filter by cardholder name (substring match)
+# Filtrar por nombre de tarjetahabiente (busqueda parcial)
 bankparse parse statement.pdf --cardholder garcia
 ```
 
 ---
 
-See [Usage](usage.md) for full CLI reference, [Architecture](architecture.md) for project internals.
+Consulta [Uso](usage.md) para la referencia completa del CLI, y [Arquitectura](architecture.md) para los detalles internos del proyecto.

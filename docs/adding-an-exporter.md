@@ -1,8 +1,8 @@
-# Adding a New Export Format
+# Agregar un nuevo formato de exportacion
 
-## Step 1: Create the exporter
+## Paso 1: Crear el exporter
 
-Create `src/bankparser/exporters/myformat.py`:
+Crea `src/bankparser/exporters/miformato.py`:
 
 ```python
 """MyFormat CSV exporter."""
@@ -27,9 +27,9 @@ class MyFormatExporter(BaseExporter):
         ]
 ```
 
-## Step 2: Register it
+## Paso 2: Registrarlo
 
-In `src/bankparser/exporters/__init__.py`:
+En `src/bankparser/exporters/__init__.py`:
 
 ```python
 from bankparser.exporters.myformat import MyFormatExporter
@@ -38,8 +38,8 @@ _EXPORTERS: dict[str, BaseExporter] = {
     "generic": GenericExporter(),
     "sure": SureExporter(),
     "monarch": MonarchExporter(),
-    "myformat": MyFormatExporter(),  # add here
+    "myformat": MyFormatExporter(),  # agregar aqui
 }
 ```
 
-It will automatically appear in `bankparse parse --format` options.
+Aparecera automaticamente en las opciones de `bankparse parse --format`.

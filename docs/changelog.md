@@ -1,19 +1,19 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+Todos los cambios notables de este proyecto se documentan en este archivo.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/).
+El formato esta basado en [Keep a Changelog](https://keepachangelog.com/).
 
 ## [0.1.0] - 2026-03-01
 
-### Added
+### Agregado
 
-- **Parsers:** Amex Mexico, BBVA Mexico TDC, HSBC Mexico TDC (OCR-based)
-- **Export formats:** Generic (all fields), Sure/Maybe Finance, Monarch Money
-- **Categorization:** SQLite-backed with 22 categories and 80+ pre-seeded rules
-- **CLI:** `bankparse parse`, `categories`, `rules`, `info` commands
-- **OCR support:** HSBC CID-encoded PDFs via pytesseract + pdf2image
-- **Multi-cardholder:** Amex statements distinguish titular vs additional
-- **Foreign currency:** Original amount, currency code, and exchange rate preserved
-- **MSI tracking:** Installment info for both "sin intereses" and "con intereses"
-- **Filtering:** By cardholder, transaction type, fees, MSI, charges-only
+- **Parsers:** Amex Mexico, BBVA Mexico TDC, HSBC Mexico TDC (basado en OCR)
+- **Formatos de exportacion:** Generico (todos los campos), Sure/Maybe Finance, Monarch Money
+- **Categorizacion:** Respaldada por SQLite con 22 categorias y 80+ reglas pre-configuradas
+- **CLI:** Comandos `bankparse parse`, `categories`, `rules`, `info`
+- **Soporte OCR:** PDFs de HSBC con fuentes CID-encoded via pytesseract + pdf2image
+- **Multi-tarjetahabiente:** Estados de Amex distinguen titular vs adicionales
+- **Moneda extranjera:** Monto original, codigo de divisa y tipo de cambio preservados
+- **Seguimiento de MSI:** Info de mensualidades tanto "sin intereses" como "con intereses"
+- **Filtros:** Por tarjetahabiente, tipo de transaccion, comisiones, MSI, solo cargos

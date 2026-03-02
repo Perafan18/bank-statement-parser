@@ -1,86 +1,86 @@
-# Usage
+# Uso
 
-## Quick Start
+## Inicio rapido
 
 ```bash
-# Parse a statement (auto-detects bank)
+# Parsear un estado de cuenta (auto-detecta el banco)
 bankparse parse statement.pdf
 
-# Specify bank and format
+# Especificar banco y formato
 bankparse parse statement.pdf --bank amex --format sure
 
-# Multiple files at once
+# Multiples archivos a la vez
 bankparse parse *.pdf -f sure -o all_transactions.csv
 
-# Only actual purchases (no fees, interest, MSI)
+# Solo compras reales (sin comisiones, intereses, MSI)
 bankparse parse statement.pdf --charges-only
 
-# Exclude fees and interest but keep everything else
+# Excluir comisiones e intereses pero mantener todo lo demas
 bankparse parse statement.pdf --no-fees
 
-# Exclude MSI installments
+# Excluir mensualidades MSI
 bankparse parse statement.pdf --no-msi
 
-# Filter by cardholder name (substring match)
+# Filtrar por nombre de tarjetahabiente (busqueda parcial)
 bankparse parse statement.pdf --cardholder garcia
 ```
 
-## Category Management
+## Gestion de categorias
 
-Categories and rules live in a SQLite database at `~/.bankparser/bankparser.db`. The database is created automatically on first run with ~22 categories and ~80 rules pre-seeded.
+Las categorias y reglas viven en una base de datos SQLite en `~/.bankparser/bankparser.db`. La base de datos se crea automaticamente en la primera ejecucion con ~22 categorias y ~80 reglas pre-configuradas.
 
 ```bash
-# List all categories
+# Listar todas las categorias
 bankparse categories list
 
-# Add a new category
-bankparse categories add "Pets" --icon "🐕"
+# Agregar una nueva categoria
+bankparse categories add "Mascotas" --icon "🐕"
 
-# Remove a category (also removes its rules)
-bankparse categories remove "Pets" --yes
+# Eliminar una categoria (tambien elimina sus reglas)
+bankparse categories remove "Mascotas" --yes
 
-# List all rules (sorted by priority)
+# Listar todas las reglas (ordenadas por prioridad)
 bankparse rules list
 
-# List rules for a specific bank
+# Listar reglas para un banco especifico
 bankparse rules list --bank bbva
 
-# Add a custom rule (higher priority = checked first)
+# Agregar una regla personalizada (mayor prioridad = se revisa primero)
 bankparse rules add "COSTCO" "Groceries"
-bankparse rules add "VET" "Pets" --bank amex --priority 20
+bankparse rules add "VET" "Mascotas" --bank amex --priority 20
 
-# Remove a rule by ID
+# Eliminar una regla por ID
 bankparse rules remove 42
 
-# Show database stats
+# Mostrar estadisticas de la base de datos
 bankparse info
 ```
 
-### How categorization works
+### Como funciona la categorizacion
 
-Transactions are categorized in this order:
+Las transacciones se categorizan en este orden:
 
-1. **Type override**: Payments, Interest, Fees, Tax, MSI, and MSI Adjustment transactions are auto-categorized by their `TransactionType` regardless of description
-2. **Rule matching**: The description is matched against `category_rules` (case-insensitive substring match, ordered by priority descending, bank-specific rules checked alongside wildcard `*` rules)
-3. **Fallback**: If no rule matches, the transaction is categorized as "Uncategorized"
+1. **Override por tipo**: Pagos, Intereses, Comisiones, Impuestos, MSI y Ajustes MSI se auto-categorizan por su `TransactionType` sin importar la descripcion
+2. **Matching de reglas**: La descripcion se compara contra `category_rules` (busqueda case-insensitive por substring, ordenada por prioridad descendente, reglas especificas del banco junto con reglas wildcard `*`)
+3. **Fallback**: Si ninguna regla coincide, la transaccion se categoriza como "Uncategorized"
 
-## Export Formats
+## Formatos de exportacion
 
-| Format    | App                  | Key Columns                                                |
+| Formato   | App                  | Columnas principales                                       |
 |-----------|----------------------|------------------------------------------------------------|
-| `generic` | Any / raw analysis   | date, description, amount, currency, bank, cardholder, type, category, installment, reference, original_amount, original_currency, exchange_rate, tags |
+| `generic` | Cualquiera / analisis | date, description, amount, currency, bank, cardholder, type, category, installment, reference, original_amount, original_currency, exchange_rate, tags |
 | `sure`    | Sure / Maybe Finance | date, name, amount, currency, category, tags, account, notes |
 | `monarch` | Monarch Money        | Date, Merchant, Amount, Category, Account, Tags, Notes, Original Currency |
 
-### Amount conventions
+### Convencion de montos
 
-- **Charges** are positive amounts (e.g. `499.00`)
-- **Payments and credits** are negative amounts (e.g. `-10000.00`)
-- All amounts are in MXN unless `original_currency` is set
+- **Cargos** son montos positivos (ej. `499.00`)
+- **Pagos y creditos** son montos negativos (ej. `-10000.00`)
+- Todos los montos estan en MXN a menos que `original_currency` este definido
 
-## Debugging a Statement
+## Depurar un estado de cuenta
 
-If a statement doesn't parse correctly:
+Si un estado de cuenta no se parsea correctamente:
 
 ```python
 import pdfplumber
@@ -93,7 +93,7 @@ with pdfplumber.open("statement.pdf") as pdf:
         print(page.extract_text())
 ```
 
-If pdfplumber returns garbled text, try OCR:
+Si pdfplumber devuelve texto ilegible, prueba OCR:
 
 ```python
 from bankparser.parsers.base import BaseParser
@@ -104,4 +104,4 @@ for i, text in enumerate(pages):
     print(text)
 ```
 
-Then adjust the regex patterns in the corresponding parser file.
+Despues ajusta los patrones regex en el archivo del parser correspondiente.
