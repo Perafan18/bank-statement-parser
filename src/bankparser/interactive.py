@@ -44,7 +44,7 @@ def prompt_categorize(uncategorized: dict[str, list[Transaction]], db: Database)
         category = categories[choice - 1]
 
         # Ask for pattern — Enter keeps full description, or type a shorter keyword
-        click.echo(f"  Pattern (Enter = full, or type shorter keyword):", err=True)
+        click.echo("  Pattern (Enter = full, or type shorter keyword):", err=True)
         raw_pattern = click.prompt(f"  [{desc}]", default="", err=True, show_default=False)
         pattern = raw_pattern.strip() or desc
 
