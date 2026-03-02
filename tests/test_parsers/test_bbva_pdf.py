@@ -1,4 +1,5 @@
 """Integration tests for BBVAParser using generated PDF fixture."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -11,9 +12,7 @@ from bankparser.parsers.bbva import BBVAParser
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "pdfs" / "bbva_jan_2026.pdf"
 
-pytestmark = pytest.mark.skipif(
-    not FIXTURE.exists(), reason="BBVA PDF fixture not generated"
-)
+pytestmark = pytest.mark.skipif(not FIXTURE.exists(), reason="BBVA PDF fixture not generated")
 
 
 @pytest.fixture(scope="module")
@@ -78,9 +77,7 @@ def test_has_msi(result):
 
 
 def test_has_msi_adjustments(result):
-    adjustments = [
-        tx for tx in result.transactions if tx.tx_type == TransactionType.MSI_ADJUSTMENT
-    ]
+    adjustments = [tx for tx in result.transactions if tx.tx_type == TransactionType.MSI_ADJUSTMENT]
     assert len(adjustments) >= 2
 
 

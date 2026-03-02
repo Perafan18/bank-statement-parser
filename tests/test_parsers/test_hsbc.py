@@ -116,8 +116,7 @@ class TestHSBCOCRCleanup:
     def test_clean_description_underscore_after_space(self, parser):
         """OCR table border: 'ISIDRO _ZAP' → 'ISIDRO ZAP'."""
         assert (
-            parser._clean_description("COSTCO GDL SAN ISIDRO _ZAP")
-            == "COSTCO GDL SAN ISIDRO ZAP"
+            parser._clean_description("COSTCO GDL SAN ISIDRO _ZAP") == "COSTCO GDL SAN ISIDRO ZAP"
         )
 
     def test_clean_description_internal_underscore_preserved(self, parser):

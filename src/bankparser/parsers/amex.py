@@ -151,9 +151,7 @@ class AmexParser(BaseParser):
                         next_line = all_lines[i + 1].strip()
                         cont_match = self.MONTH_CONTINUATION_RE.match(next_line)
                         if cont_match and cont_match.group(1).lower() in MONTHS_ES:
-                            tx_date = self.parse_spanish_date(
-                                day, cont_match.group(1), year
-                            )
+                            tx_date = self.parse_spanish_date(day, cont_match.group(1), year)
                             # The false "month" is actually the start of the description
                             description = (month_name + " " + description).strip()
                             remainder = (cont_match.group(2) or "").strip()
@@ -168,9 +166,7 @@ class AmexParser(BaseParser):
                             i += 1  # Skip the month continuation line
                             resolved = True
                     if not resolved:
-                        warnings.append(
-                            f"Could not parse date: {day} de {month_name} {year}"
-                        )
+                        warnings.append(f"Could not parse date: {day} de {month_name} {year}")
                         i += 1
                         continue
 

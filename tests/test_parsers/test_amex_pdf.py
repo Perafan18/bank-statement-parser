@@ -1,4 +1,5 @@
 """Integration tests for AmexParser using generated PDF fixture."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -11,9 +12,7 @@ from bankparser.parsers.amex import AmexParser
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "pdfs" / "amex_dec_jan_2026.pdf"
 
-pytestmark = pytest.mark.skipif(
-    not FIXTURE.exists(), reason="Amex PDF fixture not generated"
-)
+pytestmark = pytest.mark.skipif(not FIXTURE.exists(), reason="Amex PDF fixture not generated")
 
 
 @pytest.fixture(scope="module")

@@ -1,4 +1,5 @@
 """PDF fixture generators. Run with: python -m tests.fixtures.generators"""
+
 from __future__ import annotations
 
 import subprocess

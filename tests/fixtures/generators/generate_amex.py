@@ -4,6 +4,7 @@ The generated PDF is designed to be parseable by AmexParser with zero mocks.
 It covers: regular charges, payments, credits, MSI, foreign USD, fees, tax,
 interest, MSI adjustments, split-date transactions, and orphan transactions.
 """
+
 from __future__ import annotations
 
 import sys
@@ -43,200 +44,430 @@ TRANSACTIONS: list[dict] = [
     # ---- Regular charges (Pedro, December 2025) ----------------------------
     {"day": 10, "month": 12, "year": 2025, "description": "OXXO TONALA JALISCO", "amount": 48.50},
     {"day": 10, "month": 12, "year": 2025, "description": "UBER EATS MX", "amount": 189.00},
-    {"day": 11, "month": 12, "year": 2025, "description": "AMAZON MX MARKETPLACE", "amount": 1_299.00},
+    {
+        "day": 11,
+        "month": 12,
+        "year": 2025,
+        "description": "AMAZON MX MARKETPLACE",
+        "amount": 1_299.00,
+    },
     {"day": 12, "month": 12, "year": 2025, "description": "LIVERPOOL CENTRO", "amount": 3_450.00},
-    {"day": 13, "month": 12, "year": 2025, "description": "COSTCO WHOLESALE GUADALAJARA", "amount": 4_567.89},
-    {"day": 14, "month": 12, "year": 2025, "description": "REST KIMODO POLANCO", "amount": 1_250.00},
-    {"day": 15, "month": 12, "year": 2025, "description": "FARMACIA GUADALAJARA SUC 415", "amount": 345.60},
-    {"day": 16, "month": 12, "year": 2025, "description": "SORIANA SUPER ZAPOPAN", "amount": 892.30},
-    {"day": 17, "month": 12, "year": 2025, "description": "CHEDRAUI SELECTO GUADALAJARA", "amount": 1_567.45},
-    {"day": 18, "month": 12, "year": 2025, "description": "HOME DEPOT MEXICO PERIFERICO", "amount": 2_890.00},
-    {"day": 19, "month": 12, "year": 2025, "description": "CINEPOLIS VIP ANDARES", "amount": 456.00},
-    {"day": 20, "month": 12, "year": 2025, "description": "TOTALPLAY TELECOMUNICACIONES", "amount": 799.00},
-    {"day": 21, "month": 12, "year": 2025, "description": "TELMEX RECIBO TELEFONICO", "amount": 589.00},
-    {"day": 22, "month": 12, "year": 2025, "description": "CFE SUMINISTRADOR DE SERVICIOS", "amount": 1_234.56},
-    {"day": 23, "month": 12, "year": 2025, "description": "GAS NATURAL DEL NOROESTE", "amount": 678.90},
-    {"day": 24, "month": 12, "year": 2025, "description": "SAMS CLUB GUADALAJARA PATRIA", "amount": 3_210.00},
-    {"day": 26, "month": 12, "year": 2025, "description": "RESTAURANTE LA TEQUILA GDL", "amount": 1_890.50},
-    {"day": 27, "month": 12, "year": 2025, "description": "GASOLINERA PEMEX 3456", "amount": 1_200.00},
-    {"day": 28, "month": 12, "year": 2025, "description": "STARBUCKS ANDARES GDL", "amount": 185.00},
-    {"day": 29, "month": 12, "year": 2025, "description": "SUPERAMA GUADALAJARA PROVIDENCIA", "amount": 2_345.67},
-    {"day": 30, "month": 12, "year": 2025, "description": "PALACIO DE HIERRO ANDARES", "amount": 5_670.00},
-
+    {
+        "day": 13,
+        "month": 12,
+        "year": 2025,
+        "description": "COSTCO WHOLESALE GUADALAJARA",
+        "amount": 4_567.89,
+    },
+    {
+        "day": 14,
+        "month": 12,
+        "year": 2025,
+        "description": "REST KIMODO POLANCO",
+        "amount": 1_250.00,
+    },
+    {
+        "day": 15,
+        "month": 12,
+        "year": 2025,
+        "description": "FARMACIA GUADALAJARA SUC 415",
+        "amount": 345.60,
+    },
+    {
+        "day": 16,
+        "month": 12,
+        "year": 2025,
+        "description": "SORIANA SUPER ZAPOPAN",
+        "amount": 892.30,
+    },
+    {
+        "day": 17,
+        "month": 12,
+        "year": 2025,
+        "description": "CHEDRAUI SELECTO GUADALAJARA",
+        "amount": 1_567.45,
+    },
+    {
+        "day": 18,
+        "month": 12,
+        "year": 2025,
+        "description": "HOME DEPOT MEXICO PERIFERICO",
+        "amount": 2_890.00,
+    },
+    {
+        "day": 19,
+        "month": 12,
+        "year": 2025,
+        "description": "CINEPOLIS VIP ANDARES",
+        "amount": 456.00,
+    },
+    {
+        "day": 20,
+        "month": 12,
+        "year": 2025,
+        "description": "TOTALPLAY TELECOMUNICACIONES",
+        "amount": 799.00,
+    },
+    {
+        "day": 21,
+        "month": 12,
+        "year": 2025,
+        "description": "TELMEX RECIBO TELEFONICO",
+        "amount": 589.00,
+    },
+    {
+        "day": 22,
+        "month": 12,
+        "year": 2025,
+        "description": "CFE SUMINISTRADOR DE SERVICIOS",
+        "amount": 1_234.56,
+    },
+    {
+        "day": 23,
+        "month": 12,
+        "year": 2025,
+        "description": "GAS NATURAL DEL NOROESTE",
+        "amount": 678.90,
+    },
+    {
+        "day": 24,
+        "month": 12,
+        "year": 2025,
+        "description": "SAMS CLUB GUADALAJARA PATRIA",
+        "amount": 3_210.00,
+    },
+    {
+        "day": 26,
+        "month": 12,
+        "year": 2025,
+        "description": "RESTAURANTE LA TEQUILA GDL",
+        "amount": 1_890.50,
+    },
+    {
+        "day": 27,
+        "month": 12,
+        "year": 2025,
+        "description": "GASOLINERA PEMEX 3456",
+        "amount": 1_200.00,
+    },
+    {
+        "day": 28,
+        "month": 12,
+        "year": 2025,
+        "description": "STARBUCKS ANDARES GDL",
+        "amount": 185.00,
+    },
+    {
+        "day": 29,
+        "month": 12,
+        "year": 2025,
+        "description": "SUPERAMA GUADALAJARA PROVIDENCIA",
+        "amount": 2_345.67,
+    },
+    {
+        "day": 30,
+        "month": 12,
+        "year": 2025,
+        "description": "PALACIO DE HIERRO ANDARES",
+        "amount": 5_670.00,
+    },
     # ---- Regular charges (Pedro, January 2026) ----------------------------
-    {"day": 2, "month": 1, "year": 2026, "description": "UBER RIDES MX CIUDAD DE MEXICO", "amount": 234.50},
+    {
+        "day": 2,
+        "month": 1,
+        "year": 2026,
+        "description": "UBER RIDES MX CIUDAD DE MEXICO",
+        "amount": 234.50,
+    },
     {"day": 3, "month": 1, "year": 2026, "description": "RAPPI MX GUADALAJARA", "amount": 312.00},
     {"day": 4, "month": 1, "year": 2026, "description": "AMAZON MX MARKETPLACE", "amount": 756.90},
     {"day": 5, "month": 1, "year": 2026, "description": "MERCADO LIBRE COMPRA", "amount": 1_489.00},
     {"day": 5, "month": 1, "year": 2026, "description": "OXXO GAS ZAPOPAN JAL", "amount": 65.00},
-    {"day": 6, "month": 1, "year": 2026, "description": "OFFICE DEPOT GUADALAJARA", "amount": 1_567.80},
-    {"day": 7, "month": 1, "year": 2026, "description": "LA COMER SUCURSAL CENTRO", "amount": 2_345.00},
-    {"day": 7, "month": 1, "year": 2026, "description": "SANBORNS RESTAURANT GDL", "amount": 456.90},
-    {"day": 8, "month": 1, "year": 2026, "description": "PETCO GUADALAJARA AMERICAS", "amount": 890.50},
-    {"day": 25, "month": 12, "year": 2025, "description": "BODEGA AURRERA ZAPOPAN", "amount": 1_345.00},
-    {"day": 31, "month": 12, "year": 2025, "description": "WALMART SUPERCENTER GUADALAJARA", "amount": 2_678.30},
-    {"day": 6, "month": 1, "year": 2026, "description": "ELEKTRA CENTRO GUADALAJARA", "amount": 3_456.00},
-
+    {
+        "day": 6,
+        "month": 1,
+        "year": 2026,
+        "description": "OFFICE DEPOT GUADALAJARA",
+        "amount": 1_567.80,
+    },
+    {
+        "day": 7,
+        "month": 1,
+        "year": 2026,
+        "description": "LA COMER SUCURSAL CENTRO",
+        "amount": 2_345.00,
+    },
+    {
+        "day": 7,
+        "month": 1,
+        "year": 2026,
+        "description": "SANBORNS RESTAURANT GDL",
+        "amount": 456.90,
+    },
+    {
+        "day": 8,
+        "month": 1,
+        "year": 2026,
+        "description": "PETCO GUADALAJARA AMERICAS",
+        "amount": 890.50,
+    },
+    {
+        "day": 25,
+        "month": 12,
+        "year": 2025,
+        "description": "BODEGA AURRERA ZAPOPAN",
+        "amount": 1_345.00,
+    },
+    {
+        "day": 31,
+        "month": 12,
+        "year": 2025,
+        "description": "WALMART SUPERCENTER GUADALAJARA",
+        "amount": 2_678.30,
+    },
+    {
+        "day": 6,
+        "month": 1,
+        "year": 2026,
+        "description": "ELEKTRA CENTRO GUADALAJARA",
+        "amount": 3_456.00,
+    },
     # ---- Payments (is_credit=True, split-date) ----------------------------
     {
-        "day": 18, "month": 12, "year": 2025,
+        "day": 18,
+        "month": 12,
+        "year": 2025,
         "description": "GRACIAS POR SU PAGO EN LINEA",
-        "amount": 6_005.17, "is_credit": True, "split_date": True,
+        "amount": 6_005.17,
+        "is_credit": True,
+        "split_date": True,
     },
     {
-        "day": 2, "month": 1, "year": 2026,
+        "day": 2,
+        "month": 1,
+        "year": 2026,
         "description": "GRACIAS POR SU PAGO EN LINEA",
-        "amount": 15_000.00, "is_credit": True, "split_date": True,
+        "amount": 15_000.00,
+        "is_credit": True,
+        "split_date": True,
     },
-
     # ---- Credits / Refunds (is_credit=True) --------------------------------
     {
-        "day": 20, "month": 12, "year": 2025,
+        "day": 20,
+        "month": 12,
+        "year": 2025,
         "description": "DEVOLUCION LIVERPOOL",
-        "amount": 1_200.00, "is_credit": True,
+        "amount": 1_200.00,
+        "is_credit": True,
     },
     {
-        "day": 5, "month": 1, "year": 2026,
+        "day": 5,
+        "month": 1,
+        "year": 2026,
         "description": "DEVOLUCION AMAZON MX",
-        "amount": 350.00, "is_credit": True,
+        "amount": 350.00,
+        "is_credit": True,
     },
     {
-        "day": 28, "month": 12, "year": 2025,
+        "day": 28,
+        "month": 12,
+        "year": 2025,
         "description": "BONIFICACION AMEX CASHBACK",
-        "amount": 250.00, "is_credit": True, "split_date": True,
+        "amount": 250.00,
+        "is_credit": True,
+        "split_date": True,
     },
     {
-        "day": 6, "month": 1, "year": 2026,
+        "day": 6,
+        "month": 1,
+        "year": 2026,
         "description": "GRACIAS POR SU PAGO SUCURSAL",
-        "amount": 8_500.00, "is_credit": True, "split_date": True,
+        "amount": 8_500.00,
+        "is_credit": True,
+        "split_date": True,
     },
-
     # ---- MSI (installments) -----------------------------------------------
     {
-        "day": 12, "month": 12, "year": 2025,
+        "day": 12,
+        "month": 12,
+        "year": 2025,
         "description": "LIVERPOOL CENTRO MSI",
-        "amount": 1_500.00, "installment": "03 DE 12",
+        "amount": 1_500.00,
+        "installment": "03 DE 12",
     },
     {
-        "day": 15, "month": 12, "year": 2025,
+        "day": 15,
+        "month": 12,
+        "year": 2025,
         "description": "HOME DEPOT MEXICO MSI",
-        "amount": 2_500.00, "installment": "01 DE 06",
+        "amount": 2_500.00,
+        "installment": "01 DE 06",
     },
     {
-        "day": 3, "month": 1, "year": 2026,
+        "day": 3,
+        "month": 1,
+        "year": 2026,
         "description": "PALACIO DE HIERRO ANDARES MSI",
-        "amount": 4_200.00, "installment": "06 DE 18",
+        "amount": 4_200.00,
+        "installment": "06 DE 18",
     },
-
     # ---- Foreign USD -------------------------------------------------------
     {
-        "day": 11, "month": 12, "year": 2025,
+        "day": 11,
+        "month": 12,
+        "year": 2025,
         "description": "DIGITALOCEAN.COM AMSTERDAM",
-        "amount": 630.30, "foreign_usd": 35.45, "exchange_rate": 17.76559,
+        "amount": 630.30,
+        "foreign_usd": 35.45,
+        "exchange_rate": 17.76559,
     },
     {
-        "day": 14, "month": 12, "year": 2025,
+        "day": 14,
+        "month": 12,
+        "year": 2025,
         "description": "SPOTIFY AB STOCKHOLM",
-        "amount": 199.90, "foreign_usd": 11.24, "exchange_rate": 17.78000,
+        "amount": 199.90,
+        "foreign_usd": 11.24,
+        "exchange_rate": 17.78000,
     },
     {
-        "day": 22, "month": 12, "year": 2025,
+        "day": 22,
+        "month": 12,
+        "year": 2025,
         "description": "NETFLIX.COM LOS GATOS",
-        "amount": 321.45, "foreign_usd": 18.09, "exchange_rate": 17.77000,
+        "amount": 321.45,
+        "foreign_usd": 18.09,
+        "exchange_rate": 17.77000,
     },
-
     # ---- Fee (CUOTA ANUAL) -------------------------------------------------
     {
-        "day": 8, "month": 1, "year": 2026,
+        "day": 8,
+        "month": 1,
+        "year": 2026,
         "description": "CUOTA ANUAL TARJETA PLATINO",
         "amount": 3_500.00,
     },
-
     # ---- Tax (IVA) ---------------------------------------------------------
     {
-        "day": 8, "month": 1, "year": 2026,
+        "day": 8,
+        "month": 1,
+        "year": 2026,
         "description": "IVA APLICABLE A COMISIONES",
         "amount": 560.00,
     },
-
     # ---- Interest ----------------------------------------------------------
     {
-        "day": 8, "month": 1, "year": 2026,
+        "day": 8,
+        "month": 1,
+        "year": 2026,
         "description": "INTERES FINANCIERO ORDINARIO",
         "amount": 1_234.56,
     },
     {
-        "day": 8, "month": 1, "year": 2026,
+        "day": 8,
+        "month": 1,
+        "year": 2026,
         "description": "INTERES FINANCIERO MORATORIO",
         "amount": 456.78,
     },
-
     # ---- MSI Adjustment (MONTO A DIFERIR) ----------------------------------
     {
-        "day": 8, "month": 1, "year": 2026,
+        "day": 8,
+        "month": 1,
+        "year": 2026,
         "description": "MONTO A DIFERIR COMPRA MSI",
-        "amount": 7_200.00, "is_credit": True,
+        "amount": 7_200.00,
+        "is_credit": True,
     },
-
     # ---- MSI Auto (MESES EN AUTOMATICO) ------------------------------------
     {
-        "day": 6, "month": 1, "year": 2026,
+        "day": 6,
+        "month": 1,
+        "year": 2026,
         "description": "MESES EN AUTOM\u00c1TICO TIENDA LIVERPOOL",
         "amount": 2_800.00,
     },
-
     # ---- Additional cardholder (Maria) ------------------------------------
     {
-        "day": 11, "month": 12, "year": 2025,
+        "day": 11,
+        "month": 12,
+        "year": 2025,
         "description": "ZARA MEXICO ANDARES GDL",
-        "amount": 2_345.00, "cardholder": "additional",
+        "amount": 2_345.00,
+        "cardholder": "additional",
     },
     {
-        "day": 13, "month": 12, "year": 2025,
+        "day": 13,
+        "month": 12,
+        "year": 2025,
         "description": "SEPHORA ANDARES GUADALAJARA",
-        "amount": 1_890.00, "cardholder": "additional",
+        "amount": 1_890.00,
+        "cardholder": "additional",
     },
     {
-        "day": 16, "month": 12, "year": 2025,
+        "day": 16,
+        "month": 12,
+        "year": 2025,
         "description": "HEB GUADALAJARA PROVIDENCIA",
-        "amount": 1_567.80, "cardholder": "additional",
+        "amount": 1_567.80,
+        "cardholder": "additional",
     },
     {
-        "day": 20, "month": 12, "year": 2025,
+        "day": 20,
+        "month": 12,
+        "year": 2025,
         "description": "SUBURBIA CENTRO GUADALAJARA",
-        "amount": 890.50, "cardholder": "additional",
+        "amount": 890.50,
+        "cardholder": "additional",
     },
     {
-        "day": 25, "month": 12, "year": 2025,
+        "day": 25,
+        "month": 12,
+        "year": 2025,
         "description": "COPPEL ZAPOPAN JALISCO",
-        "amount": 1_234.00, "cardholder": "additional",
+        "amount": 1_234.00,
+        "cardholder": "additional",
     },
     {
-        "day": 3, "month": 1, "year": 2026,
+        "day": 3,
+        "month": 1,
+        "year": 2026,
         "description": "FARMACIA SAN PABLO MEXICO",
-        "amount": 456.90, "cardholder": "additional",
+        "amount": 456.90,
+        "cardholder": "additional",
     },
     {
-        "day": 5, "month": 1, "year": 2026,
+        "day": 5,
+        "month": 1,
+        "year": 2026,
         "description": "MINISO GUADALAJARA CENTRO",
-        "amount": 234.50, "cardholder": "additional",
+        "amount": 234.50,
+        "cardholder": "additional",
     },
     {
-        "day": 7, "month": 1, "year": 2026,
+        "day": 7,
+        "month": 1,
+        "year": 2026,
         "description": "FOREVER 21 ANDARES GDL",
-        "amount": 678.00, "cardholder": "additional",
+        "amount": 678.00,
+        "cardholder": "additional",
     },
-
     # ---- Orphan transactions (no date prefix) -----------------------------
     {
-        "day": 24, "month": 12, "year": 2025,
+        "day": 24,
+        "month": 12,
+        "year": 2025,
         "description": "PAYPAL *UBRPAGOSMEX 4029357733",
-        "amount": 56.95, "orphan": True,
+        "amount": 56.95,
+        "orphan": True,
     },
     {
-        "day": 6, "month": 1, "year": 2026,
+        "day": 6,
+        "month": 1,
+        "year": 2026,
         "description": "RAPPI *TIENDAS 8837261",
-        "amount": 189.50, "orphan": True,
+        "amount": 189.50,
+        "orphan": True,
     },
 ]
 
@@ -259,9 +490,18 @@ def _month_name(month: int) -> str:
 def _month_abbr_title(month: int) -> str:
     """Return abbreviated Spanish month name for cut date, e.g. 'Ene'."""
     abbrs = {
-        1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr",
-        5: "May", 6: "Jun", 7: "Jul", 8: "Ago",
-        9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic",
+        1: "Ene",
+        2: "Feb",
+        3: "Mar",
+        4: "Abr",
+        5: "May",
+        6: "Jun",
+        7: "Jul",
+        8: "Ago",
+        9: "Sep",
+        10: "Oct",
+        11: "Nov",
+        12: "Dic",
     }
     return abbrs[month]
 
@@ -306,6 +546,7 @@ class PDFWriter:
 # ---------------------------------------------------------------------------
 # Page builders
 # ---------------------------------------------------------------------------
+
 
 def write_first_page(w: PDFWriter) -> None:
     """Write the first page (summary) with statement metadata."""
@@ -385,7 +626,9 @@ def _format_orphan_line(tx: dict) -> str:
     return f"{desc} {amt}"
 
 
-def write_transactions(w: PDFWriter, transactions: list[dict], cardholder_filter: str | None) -> float:
+def write_transactions(
+    w: PDFWriter, transactions: list[dict], cardholder_filter: str | None
+) -> float:
     """Write transaction lines for a given cardholder group.
 
     Returns the sum of amounts (positive for charges, respecting is_credit).
@@ -423,7 +666,7 @@ def write_transactions(w: PDFWriter, transactions: list[dict], cardholder_filter
                     w.write_line("CR")
                 if otx.get("rfc"):
                     w.write_line(otx["rfc"])
-                total += (-otx["amount"] if otx.get("is_credit") else otx["amount"])
+                total += -otx["amount"] if otx.get("is_credit") else otx["amount"]
 
         is_split = tx.get("split_date", False)
 
@@ -462,7 +705,7 @@ def write_transactions(w: PDFWriter, transactions: list[dict], cardholder_filter
             w.write_line("CR")
         if otx.get("rfc"):
             w.write_line(otx["rfc"])
-        total += (-otx["amount"] if otx.get("is_credit") else otx["amount"])
+        total += -otx["amount"] if otx.get("is_credit") else otx["amount"]
 
     return total
 
@@ -500,6 +743,7 @@ def write_transaction_pages(w: PDFWriter) -> None:
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     from reportlab.lib.pagesizes import letter

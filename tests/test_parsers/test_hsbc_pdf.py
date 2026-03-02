@@ -1,4 +1,5 @@
 """Integration tests for HSBCParser using generated PDF fixture (OCR-based)."""
+
 from __future__ import annotations
 
 from datetime import date

@@ -28,9 +28,7 @@ class TestPromptCategorize:
         assert tmp_db.match_category("OXXO TONALA") == "Groceries"
 
     def test_user_accepts_default_pattern(self, tmp_db, monkeypatch):
-        txs = [
-            Transaction(date=date(2026, 1, 1), description="FARMACIA BENAVIDES", amount=120.0)
-        ]
+        txs = [Transaction(date=date(2026, 1, 1), description="FARMACIA BENAVIDES", amount=120.0)]
         uncategorized = {"FARMACIA BENAVIDES": txs}
 
         cats = tmp_db.list_user_categories()
