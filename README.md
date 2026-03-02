@@ -1,6 +1,10 @@
 # Bank Statement Parser
 
 [![CI](https://github.com/Perafan18/bank-statement-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/Perafan18/bank-statement-parser/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/bankparser)](https://pypi.org/project/bankparser/)
+[![Python](https://img.shields.io/pypi/pyversions/bankparser)](https://pypi.org/project/bankparser/)
+[![License](https://img.shields.io/github/license/Perafan18/bank-statement-parser)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://Perafan18.github.io/bank-statement-parser/)
 
 Parse Mexican bank statement PDFs (American Express, BBVA, HSBC) into CSV files
 compatible with personal finance apps like [Sure](https://github.com/we-promise/sure),
