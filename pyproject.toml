@@ -22,9 +22,17 @@ ocr = [
     "pytesseract>=0.3.10",
     "pdf2image>=1.16.0",
 ]
+lint = [
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pip-audit>=2.7.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pip-audit>=2.7.0",
 ]
 
 [project.scripts]
@@ -37,3 +45,24 @@ where = ["src"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["pdfplumber.*", "pytesseract.*", "pdf2image.*"]
+ignore_missing_imports = true

@@ -5,7 +5,6 @@ from __future__ import annotations
 from bankparser.database import Database
 from bankparser.models import Transaction, TransactionType
 
-
 # Map transaction types to forced categories (these override rules)
 TYPE_CATEGORY_MAP = {
     TransactionType.PAYMENT: "Payment",
@@ -44,3 +43,19 @@ class Categorizer:
         for tx in transactions:
             tx.category = self.categorize(tx)
         return transactions
+
+    def collect_uncategorized(
+        self, transactions: list[Transaction]
+    ) -> dict[str, list[Transaction]]:
+        """Group uncategorized transactions by description."""
+        groups: dict[str, list[Transaction]] = {}
+        for tx in transactions:
+            if tx.category == "Uncategorized":
+                groups.setdefault(tx.description, []).append(tx)
+        return groups
+
+    def recategorize_uncategorized(self, transactions: list[Transaction]) -> None:
+        """Re-categorize only transactions still marked 'Uncategorized'."""
+        for tx in transactions:
+            if tx.category == "Uncategorized":
+                tx.category = self.categorize(tx)

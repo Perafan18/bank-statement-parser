@@ -1,5 +1,7 @@
 # Bank Statement Parser
 
+[![CI](https://github.com/your-username/bank-statement-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/bank-statement-parser/actions/workflows/ci.yml)
+
 Parse Mexican bank statement PDFs (American Express, BBVA, HSBC) into CSV files
 compatible with personal finance apps like [Sure](https://github.com/we-promise/sure),
 Monarch Money, and others.
@@ -556,6 +558,25 @@ pytest tests/test_categorizer.py::TestDatabase::test_add_category
 
 # Only BBVA parser tests
 pytest tests/test_parsers/test_bbva.py -v
+```
+
+## Development
+
+```bash
+# Lint
+ruff check src/ tests/
+
+# Auto-fix lint issues
+ruff check --fix src/ tests/
+
+# Format
+ruff format src/ tests/
+
+# Type check
+mypy src/
+
+# Dependency audit
+pip-audit
 ```
 
 ## Debugging a Statement

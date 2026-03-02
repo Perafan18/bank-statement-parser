@@ -2,19 +2,26 @@
 
 from __future__ import annotations
 
-import re
 from abc import ABC, abstractmethod
 from datetime import date
 from pathlib import Path
 
-from bankparser.models import ParseResult, StatementInfo, Transaction
+from bankparser.models import ParseResult
 
-
-# Spanish month name → month number
+# Spanish month name → month number (full and abbreviated forms)
 MONTHS_ES = {
-    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4,
-    "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
-    "septiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12,
+    "enero": 1, "ene": 1,
+    "febrero": 2, "feb": 2,
+    "marzo": 3, "mar": 3,
+    "abril": 4, "abr": 4,
+    "mayo": 5, "may": 5,
+    "junio": 6, "jun": 6,
+    "julio": 7, "jul": 7,
+    "agosto": 8, "ago": 8,
+    "septiembre": 9, "sep": 9,
+    "octubre": 10, "oct": 10,
+    "noviembre": 11, "nov": 11,
+    "diciembre": 12, "dic": 12,
 }
 
 
@@ -56,11 +63,11 @@ class BaseParser(ABC):
     @staticmethod
     def parse_mx_amount(amount_str: str) -> float:
         """Parse a Mexican-format amount string (e.g. '1,234.56') to float."""
-        cleaned = amount_str.replace(',', '').replace('$', '').strip()
+        cleaned = amount_str.replace(",", "").replace("$", "").strip()
         try:
             return float(cleaned)
-        except ValueError:
-            raise ValueError(f"Cannot parse amount: '{amount_str}'")
+        except ValueError as err:
+            raise ValueError(f"Cannot parse amount: '{amount_str}'") from err
 
     @staticmethod
     def extract_text_from_pdf(pdf_path: Path) -> list[str]:
@@ -86,7 +93,9 @@ class BaseParser(ABC):
 
     @staticmethod
     def extract_text_with_ocr(
-        pdf_path: Path, dpi: int = 300, psm: int = 6,
+        pdf_path: Path,
+        dpi: int = 300,
+        psm: int = 6,
     ) -> list[str]:
         """Extract text from a PDF using OCR (pytesseract + pdf2image).
 
@@ -99,14 +108,16 @@ class BaseParser(ABC):
             psm: Tesseract page segmentation mode (6 = uniform block, best
                  for tabular bank statements).
         """
-        from pdf2image import convert_from_path
         import pytesseract
+        from pdf2image import convert_from_path
 
         images = convert_from_path(str(pdf_path), dpi=dpi)
         pages = []
         for img in images:
             text = pytesseract.image_to_string(
-                img, lang="spa", config=f"--psm {psm}",
+                img,
+                lang="spa",
+                config=f"--psm {psm}",
             )
             pages.append(text)
         return pages

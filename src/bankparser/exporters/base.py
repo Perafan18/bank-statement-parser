@@ -25,10 +25,10 @@ class BaseExporter(ABC):
         """Format a single transaction as a CSV row."""
         ...
 
-    def export(self, transactions: list[Transaction], output_path: str | Path):
+    def export(self, transactions: list[Transaction], output_path: str | Path) -> None:
         """Export transactions to a CSV file."""
         path = Path(output_path)
-        with open(path, 'w', newline='', encoding='utf-8') as f:
+        with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(self.get_headers())
             for tx in transactions:

@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
-from bankparser.parsers.base import BaseParser
 from bankparser.models import ParseResult
+from bankparser.parsers.base import BaseParser
 
 
 class ParserRegistry:
@@ -21,18 +20,18 @@ class ParserRegistry:
         result = registry.parse("statement.pdf", bank="amex")  # explicit
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._parsers: dict[str, BaseParser] = {}
 
-    def register(self, parser: BaseParser):
+    def register(self, parser: BaseParser) -> None:
         """Register a parser instance."""
         self._parsers[parser.bank_name] = parser
 
-    def get_parser(self, bank_name: str) -> Optional[BaseParser]:
+    def get_parser(self, bank_name: str) -> BaseParser | None:
         """Get a parser by bank name."""
         return self._parsers.get(bank_name)
 
-    def detect_bank(self, pdf_path: Path) -> Optional[str]:
+    def detect_bank(self, pdf_path: Path) -> str | None:
         """Auto-detect which bank a PDF belongs to."""
         for name, parser in self._parsers.items():
             try:
@@ -42,7 +41,7 @@ class ParserRegistry:
                 continue
         return None
 
-    def parse(self, pdf_path: str | Path, bank: Optional[str] = None) -> ParseResult:
+    def parse(self, pdf_path: str | Path, bank: str | None = None) -> ParseResult:
         """Parse a statement, auto-detecting the bank if not specified."""
         path = Path(pdf_path)
 

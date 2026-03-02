@@ -19,6 +19,7 @@ parse and warns about discrepancies against the statement totals.
 
 from __future__ import annotations
 
+import contextlib
 import re
 from datetime import date
 from pathlib import Path
@@ -29,14 +30,24 @@ from bankparser.parsers.base import BaseParser
 try:
     import pdf2image  # noqa: F401
     import pytesseract  # noqa: F401
+
     _OCR_AVAILABLE = True
 except ImportError:
     _OCR_AVAILABLE = False
 
 MONTHS_ABBREV = {
-    "ene": 1, "feb": 2, "mar": 3, "abr": 4,
-    "may": 5, "jun": 6, "jul": 7, "ago": 8,
-    "sep": 9, "oct": 10, "nov": 11, "dic": 12,
+    "ene": 1,
+    "feb": 2,
+    "mar": 3,
+    "abr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "ago": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dic": 12,
 }
 
 
@@ -68,49 +79,45 @@ class HSBCParser(BaseParser):
 
     # ── Regexes ───────────────────────────────────────────────────────────────
 
-    _DATE_PAT = r'(\d{1,2}-[A-Za-z]{3}-\d{4})'
+    _DATE_PAT = r"(\d{1,2}-[A-Za-z]{3}-\d{4})"
 
     # Full transaction line: two dates + description + amount
     # OCR artifacts before amount: 1+1$, [+1$, |-]$, || $ (table border chars)
     # Extra digit after year tolerated (OCR may produce "20268" for "2026")
     TX_RE = re.compile(
-        _DATE_PAT + r'\s+' + _DATE_PAT + r'\d?\s*[_|[\])\s]*'
-        r'(.+?)\s*(?:[|+\[\]1\-]+\s*)?\$?\s*([\d,]+\.\d{2})\s*$'
+        _DATE_PAT + r"\s+" + _DATE_PAT + r"\d?\s*[_|[\])\s]*"
+        r"(.+?)\s*(?:[|+\[\]1\-]+\s*)?\$?\s*([\d,]+\.\d{2})\s*$"
     )
 
     # Transaction line without amount (OCR split amount to another line)
-    TX_NO_AMOUNT_RE = re.compile(
-        _DATE_PAT + r'\s+' + _DATE_PAT + r'\d?\s*[_|[\])\s]*(.+?)\s*$'
-    )
+    TX_NO_AMOUNT_RE = re.compile(_DATE_PAT + r"\s+" + _DATE_PAT + r"\d?\s*[_|[\])\s]*(.+?)\s*$")
 
     # MONEDA EXTRANJERA line (foreign currency)
     # e.g. "12-Feb-2026 12-Feb-2026 MONEDA EXTRANJERA: 9.98 USD TC: 17.28657 ... $172.52"
-    FOREIGN_RE = re.compile(
-        r'MONEDA EXTRANJERA:\s*([\d,.]+)\s+([A-Z]{3})\s+TC:\s*([\d,.]+)'
-    )
+    FOREIGN_RE = re.compile(r"MONEDA EXTRANJERA:\s*([\d,.]+)\s+([A-Z]{3})\s+TC:\s*([\d,.]+)")
 
     # MXN amount at end of MONEDA EXTRANJERA line (may have OCR artifacts)
-    FOREIGN_MXN_RE = re.compile(r'[\$\[]\s*([\d,]+\.\d{2})\s*$')
+    FOREIGN_MXN_RE = re.compile(r"[\$\[]\s*([\d,]+\.\d{2})\s*$")
 
     # Standalone amount line (orphaned by OCR)
-    AMOUNT_LINE_RE = re.compile(r'^\s*-?\s*\$?\s*([\d,]+\.\d{2})\s*$')
+    AMOUNT_LINE_RE = re.compile(r"^\s*-?\s*\$?\s*([\d,]+\.\d{2})\s*$")
 
     # Section markers
-    SECTION_RE = re.compile(r'CARGOS,?\s*ABONOS\s+Y\s+COMPRAS\s+REGULARES')
-    TARJETA_RE = re.compile(r'Tarjeta\s+(titular|adicional)\s+(\d+)', re.IGNORECASE)
-    TOTAL_RE = re.compile(r'^Total\s*(cargos|abonos)', re.IGNORECASE)
+    SECTION_RE = re.compile(r"CARGOS,?\s*ABONOS\s+Y\s+COMPRAS\s+REGULARES")
+    TARJETA_RE = re.compile(r"Tarjeta\s+(titular|adicional)\s+(\d+)", re.IGNORECASE)
+    TOTAL_RE = re.compile(r"^Total\s*(cargos|abonos)", re.IGNORECASE)
 
     # Lines to skip inside transaction section
     SKIP_PATTERNS = [
-        re.compile(r'^i+\.\s+Fecha'),
-        re.compile(r'^operación'),
-        re.compile(r'^l?i+\.\s+Fecha'),
-        re.compile(r'^Notas:'),
-        re.compile(r'^Ver notas'),
-        re.compile(r'^Número de cuenta'),
-        re.compile(r'^Página'),
-        re.compile(r'^>?\s*H\s*S\s*B\s*C'),
-        re.compile(r'^\d{4,5}\s+\d{2}\s*$'),
+        re.compile(r"^i+\.\s+Fecha"),
+        re.compile(r"^operación"),
+        re.compile(r"^l?i+\.\s+Fecha"),
+        re.compile(r"^Notas:"),
+        re.compile(r"^Ver notas"),
+        re.compile(r"^Número de cuenta"),
+        re.compile(r"^Página"),
+        re.compile(r"^>?\s*H\s*S\s*B\s*C"),
+        re.compile(r"^\d{4,5}\s+\d{2}\s*$"),
     ]
 
     # ── Main parse ────────────────────────────────────────────────────────────
@@ -129,7 +136,7 @@ class HSBCParser(BaseParser):
 
         all_lines: list[str] = []
         for text in pages_text:
-            all_lines.extend(text.split('\n'))
+            all_lines.extend(text.split("\n"))
 
         transactions = self._parse_transactions(all_lines, warnings)
 
@@ -147,15 +154,13 @@ class HSBCParser(BaseParser):
 
         # Account: NÚMERO DE CUENTA: 4524 2160 2342 9864
         # OCR may drop the accent: "NUMERO" vs "NÚMERO"
-        acct_match = re.search(
-            r'N[ÚU]MERO DE CUENTA:\s*(\d{4}\s*\d{4}\s*\d{4}\s*\d{4})', text
-        )
+        acct_match = re.search(r"N[ÚU]MERO DE CUENTA:\s*(\d{4}\s*\d{4}\s*\d{4}\s*\d{4})", text)
         if acct_match:
-            info.account_number = acct_match.group(1).replace(' ', '')
+            info.account_number = acct_match.group(1).replace(" ", "")
 
         # Period: Periodo: 15-Dic-2025 al 12-Ene-2026
         period_match = re.search(
-            r'Periodo:\s*' + self._DATE_PAT + r'\s+al\s+' + self._DATE_PAT,
+            r"Periodo:\s*" + self._DATE_PAT + r"\s+al\s+" + self._DATE_PAT,
             text,
         )
         if period_match:
@@ -166,25 +171,19 @@ class HSBCParser(BaseParser):
                 pass
 
         # Cardholder: line after "TU PAGO REQUERIDO ESTE PERIODO"
-        name_match = re.search(
-            r'TU PAGO REQUERIDO ESTE PERIODO\n([A-ZÁÉÍÓÚÑ ]+)\n', text
-        )
+        name_match = re.search(r"TU PAGO REQUERIDO ESTE PERIODO\n([A-ZÁÉÍÓÚÑ ]+)\n", text)
         if name_match:
             info.cardholder = name_match.group(1).strip()
 
         # Cut date: Fecha de corte: 12-Ene-2026
-        cut_match = re.search(
-            r'Fecha de corte:\s*' + self._DATE_PAT, text
-        )
+        cut_match = re.search(r"Fecha de corte:\s*" + self._DATE_PAT, text)
         if cut_match:
-            try:
+            with contextlib.suppress(ValueError, KeyError):
                 info.cut_date = self._parse_hsbc_date(cut_match.group(1))
-            except (ValueError, KeyError):
-                pass
 
         # Previous balance: Adeudo del periodo anterior |= $29,093.55
         balance_match = re.search(
-            r'Adeudo del periodo anterior\s*[|=\s]*\$\s*([\d,]+\.\d{2})', text
+            r"Adeudo del periodo anterior\s*[|=\s]*\$\s*([\d,]+\.\d{2})", text
         )
         if balance_match:
             info.previous_balance = self.parse_mx_amount(balance_match.group(1))
@@ -199,13 +198,13 @@ class HSBCParser(BaseParser):
 
         Handles common OCR errors: O→0 in day/year, l→1 in day/year.
         """
-        parts = date_str.split('-')
+        parts = date_str.split("-")
         if len(parts) != 3:
             raise ValueError(f"Invalid date: {date_str}")
 
         day_s, month_s, year_s = parts
         # Fix OCR errors in day and year (not month)
-        for old, new in [('O', '0'), ('o', '0'), ('l', '1'), ('S', '5')]:
+        for old, new in [("O", "0"), ("o", "0"), ("l", "1"), ("S", "5")]:
             day_s = day_s.replace(old, new)
             year_s = year_s.replace(old, new)
 
@@ -224,8 +223,8 @@ class HSBCParser(BaseParser):
         Replaces letter O with digit 0 when adjacent to other digits
         (e.g. 'O5-Feb-2026' → '05-Feb-2026', '2O26' → '2026').
         """
-        line = re.sub(r'(?<=\d)O', '0', line)
-        line = re.sub(r'O(?=\d)', '0', line)
+        line = re.sub(r"(?<=\d)O", "0", line)
+        line = re.sub(r"O(?=\d)", "0", line)
         return line
 
     def _parse_transactions(self, lines: list[str], warnings: list[str]) -> list[Transaction]:
@@ -269,7 +268,7 @@ class HSBCParser(BaseParser):
                 continue
 
             # Handle MONEDA EXTRANJERA (foreign currency) line
-            if 'MONEDA EXTRANJERA' in stripped:
+            if "MONEDA EXTRANJERA" in stripped:
                 tx = self._parse_foreign_tx(stripped, pending_description)
                 if tx:
                     transactions.append(tx)
@@ -299,9 +298,12 @@ class HSBCParser(BaseParser):
                     amt_match = self.AMOUNT_LINE_RE.match(lines[j].strip())
                     if amt_match:
                         amount = self.parse_mx_amount(amt_match.group(1))
-                        is_credit = 'SUPAGO' in desc.upper() or 'PAGO' in desc.upper()
+                        is_credit = "SUPAGO" in desc.upper() or "PAGO" in desc.upper()
                         tx = self._build_transaction_manual(
-                            no_amt_match.group(1), desc, amount, is_credit,
+                            no_amt_match.group(1),
+                            desc,
+                            amount,
+                            is_credit,
                         )
                         if tx:
                             transactions.append(tx)
@@ -314,10 +316,12 @@ class HSBCParser(BaseParser):
                 continue
 
             # Non-date line inside section - could be a description for foreign tx
-            if not stripped.startswith('$') and not self.AMOUNT_LINE_RE.match(stripped):
-                # Only store if it looks like a merchant description
-                if re.search(r'[A-Z]{2,}', stripped):
-                    pending_description = self._clean_description(stripped)
+            if (
+                not stripped.startswith("$")
+                and not self.AMOUNT_LINE_RE.match(stripped)
+                and re.search(r"[A-Z]{2,}", stripped)
+            ):
+                pending_description = self._clean_description(stripped)
 
             i += 1
 
@@ -327,12 +331,13 @@ class HSBCParser(BaseParser):
     #   |+| → charge (OCR reads as 1+1, [+1, [+])
     #   |-| → credit/abono (OCR reads as |-], |-[, ||)
     # "||" = |-| with middle garbled (|+| reads as 1+1, not ||)
-    ABONO_INDICATOR_RE = re.compile(r'[|\[]\s*-\s*[|\[\]]|(?<!\+)\|\|(?!\+)')
+    ABONO_INDICATOR_RE = re.compile(r"[|\[]\s*-\s*[|\[\]]|(?<!\+)\|\|(?!\+)")
 
     def _build_transaction(self, match: re.Match, original_line: str) -> Transaction | None:
         """Build a Transaction from a TX_RE match."""
         op_date_str = match.group(1)
-        description = self._clean_description(match.group(3))
+        raw_description = match.group(3)
+        description = self._clean_description(raw_description)
         amount_str = match.group(4)
 
         # Detect credit/abono from description keywords or OCR table indicators
@@ -341,12 +346,17 @@ class HSBCParser(BaseParser):
         if not is_credit:
             # Check for minus indicator in the junk between description and amount
             # Extract the part between description end and amount start
-            desc_end = original_line.find(description) + len(description) if description in original_line else -1
+            # Use raw_description for position lookup (cleaned version may not match)
+            desc_end = (
+                original_line.find(raw_description) + len(raw_description)
+                if raw_description in original_line
+                else -1
+            )
             if desc_end > 0:
-                junk = original_line[desc_end:original_line.rfind(amount_str)]
+                junk = original_line[desc_end : original_line.rfind(amount_str)]
                 is_credit = bool(self.ABONO_INDICATOR_RE.search(junk))
         # Clean trailing "A", "||" or other OCR artifacts from description
-        description = re.sub(r'\s*(?:A|\|{1,2})\s*$', '', description)
+        description = re.sub(r"\s*(?:A|\|{1,2})\s*$", "", description)
 
         try:
             tx_date = self._parse_hsbc_date(op_date_str)
@@ -369,7 +379,11 @@ class HSBCParser(BaseParser):
         )
 
     def _build_transaction_manual(
-        self, op_date_str: str, description: str, amount: float, is_credit: bool,
+        self,
+        op_date_str: str,
+        description: str,
+        amount: float,
+        is_credit: bool,
     ) -> Transaction | None:
         """Build a Transaction from manually extracted fields."""
         try:
@@ -392,16 +406,18 @@ class HSBCParser(BaseParser):
         )
 
     def _parse_foreign_tx(
-        self, line: str, pending_description: str | None,
+        self,
+        line: str,
+        pending_description: str | None,
     ) -> Transaction | None:
         """Parse a MONEDA EXTRANJERA line into a foreign-currency transaction."""
         foreign_match = self.FOREIGN_RE.search(line)
         if not foreign_match:
             return None
 
-        original_amount = float(foreign_match.group(1).replace(',', ''))
+        original_amount = float(foreign_match.group(1).replace(",", ""))
         original_currency = foreign_match.group(2)
-        exchange_rate = float(foreign_match.group(3).replace(',', ''))
+        exchange_rate = float(foreign_match.group(3).replace(",", ""))
 
         # Get MXN amount from end of line, falling back to calculated value
         # OCR may garble "$179.51" into "[5179.51" or "[517252" (no decimal)
@@ -446,11 +462,13 @@ class HSBCParser(BaseParser):
     def _clean_description(desc: str) -> str:
         """Remove OCR artifacts from description."""
         # Remove leading pipe, underscore, bracket artifacts
-        desc = re.sub(r'^[_|[\])\s]+', '', desc)
+        desc = re.sub(r"^[_|[\])\s]+", "", desc)
         # Remove trailing underscores and artifacts
-        desc = re.sub(r'[_|]+$', '', desc)
+        desc = re.sub(r"[_|]+$", "", desc)
+        # Remove OCR table-border underscores adjacent to spaces
+        desc = re.sub(r"\s*_\s+|\s+_\s*", " ", desc)
         # Collapse multiple spaces
-        desc = re.sub(r'\s{2,}', ' ', desc)
+        desc = re.sub(r"\s{2,}", " ", desc)
         return desc.strip()
 
     def _classify(self, description: str, is_credit: bool) -> TransactionType:
@@ -464,7 +482,7 @@ class HSBCParser(BaseParser):
 
         if "SUPAGO" in desc:
             return TransactionType.PAYMENT
-        if re.search(r'\bPAGO\b', desc) or re.search(r'\bABONO\b', desc):
+        if re.search(r"\bPAGO\b", desc) or re.search(r"\bABONO\b", desc):
             return TransactionType.PAYMENT
         if "INTERES" in desc:
             return TransactionType.INTEREST
@@ -479,7 +497,4 @@ class HSBCParser(BaseParser):
 
     def _should_skip(self, line: str) -> bool:
         """Check if a line should be skipped inside the transaction section."""
-        for pattern in self.SKIP_PATTERNS:
-            if pattern.match(line):
-                return True
-        return False
+        return any(pattern.match(line) for pattern in self.SKIP_PATTERNS)

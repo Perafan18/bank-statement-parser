@@ -13,6 +13,7 @@ with your statement, share a redacted sample to improve it.
 
 from __future__ import annotations
 
+import contextlib
 import re
 from datetime import date
 from pathlib import Path
@@ -22,9 +23,18 @@ from bankparser.parsers.base import BaseParser
 
 # BBVA uses abbreviated months in some formats
 MONTHS_ABBREV = {
-    "ene": 1, "feb": 2, "mar": 3, "abr": 4,
-    "may": 5, "jun": 6, "jul": 7, "ago": 8,
-    "sep": 9, "oct": 10, "nov": 11, "dic": 12,
+    "ene": 1,
+    "feb": 2,
+    "mar": 3,
+    "abr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "ago": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dic": 12,
 }
 
 
@@ -38,10 +48,7 @@ class BBVAParser(BaseParser):
     def can_parse(self, pdf_path: Path) -> bool:
         text = self.extract_first_page_text(pdf_path).lower()
         return (
-            "bbva" in text
-            or "bancomer" in text
-            or "bbva méxico" in text
-            or "bbva mexico" in text
+            "bbva" in text or "bancomer" in text or "bbva méxico" in text or "bbva mexico" in text
         )
 
     # ── Regexes ───────────────────────────────────────────────────────────────
@@ -49,38 +56,39 @@ class BBVAParser(BaseParser):
     # Transaction line: two dates, description, +/- sign, $ amount
     # e.g. "11-ene-2026 12-ene-2026 OXXO TONALA + $48.50"
     TX_RE = re.compile(
-        r'^(\d{1,2}-[a-z]{3}-\d{4})\s+(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+([+-])\s+\$([\d,]+\.\d{2})\s*$'
+        r"^(\d{1,2}-[a-z]{3}-\d{4})\s+(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+([+-])\s+\$([\d,]+\.\d{2})\s*$"
     )
 
     # Foreign currency continuation line
     # e.g. "USD $100.45 TIPO DE CAMBIO $17.99"
-    FOREIGN_RE = re.compile(
-        r'^\s*([A-Z]{3})\s+\$([\d,]+\.\d{2})\s+TIPO DE CAMBIO\s+\$([\d,.]+)'
-    )
+    FOREIGN_RE = re.compile(r"^\s*([A-Z]{3})\s+\$([\d,]+\.\d{2})\s+TIPO DE CAMBIO\s+\$([\d,.]+)")
 
     # Installment prefix in description: "03 DE 03 TIENDA GRANDE"
-    INSTALLMENT_RE = re.compile(r'^(\d{2}\s+DE\s+\d{2,3})\s+(.+)')
+    INSTALLMENT_RE = re.compile(r"^(\d{2}\s+DE\s+\d{2,3})\s+(.+)")
 
-    # MSI sin intereses row: date, description, original amount, pending, required, installment, rate
+    # MSI sin intereses row: date, desc, original amount, pending, required, installment, rate
     MSI_SIN_RE = re.compile(
-        r'^(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+(\d+\s+de\s+\d+)\s+([\d.]+%)'
+        r"^(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})"
+        r"\s+\$([\d,]+\.\d{2})\s+(\d+\s+de\s+\d+)\s+([\d.]+%)"
     )
 
-    # MSI con intereses row: date, description, original, pending, interest, iva, required, installment, rate
+    # MSI con intereses: date, desc, original, pending, interest, iva, required, installment, rate
     MSI_CON_RE = re.compile(
-        r'^(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+(\d+\s+de\s+\d+)\s+([\d.]+%)'
+        r"^(\d{1,2}-[a-z]{3}-\d{4})\s+(.+?)\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})"
+        r"\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})\s+\$([\d,]+\.\d{2})"
+        r"\s+(\d+\s+de\s+\d+)\s+([\d.]+%)"
     )
 
     # Lines to skip (non-transaction content)
     SKIP_PATTERNS = [
-        re.compile(r'^CARGOS,COMPRAS Y ABONOS'),
-        re.compile(r'^Fecha'),
-        re.compile(r'^de la\s+Descripción'),
-        re.compile(r'^de cargo'),
-        re.compile(r'^operación'),
-        re.compile(r'^TOTAL\s+(CARGOS|ABONOS)'),
-        re.compile(r'^IVA\s*:\$'),
-        re.compile(r'^Capital de promoción'),
+        re.compile(r"^CARGOS,COMPRAS Y ABONOS"),
+        re.compile(r"^Fecha"),
+        re.compile(r"^de la\s+Descripción"),
+        re.compile(r"^de cargo"),
+        re.compile(r"^operación"),
+        re.compile(r"^TOTAL\s+(CARGOS|ABONOS)"),
+        re.compile(r"^IVA\s*:\$"),
+        re.compile(r"^Capital de promoción"),
     ]
 
     # ── Main parse ────────────────────────────────────────────────────────────
@@ -95,7 +103,7 @@ class BBVAParser(BaseParser):
         # Collect all lines from all pages
         all_lines: list[str] = []
         for text in pages_text:
-            all_lines.extend(text.split('\n'))
+            all_lines.extend(text.split("\n"))
 
         transactions = self._parse_regular_section(all_lines)
         transactions.extend(self._parse_msi_section(all_lines))
@@ -120,13 +128,13 @@ class BBVAParser(BaseParser):
         info = StatementInfo(bank=self.bank_name)
 
         # Account number: "Numero de tarjeta: 4152XXXXXXXXXXXX"
-        acct_match = re.search(r'Número de tarjeta:\s*(\d+)', text)
+        acct_match = re.search(r"Número de tarjeta:\s*(\d+)", text)
         if acct_match:
             info.account_number = acct_match.group(1)
 
         # Period: "Periodo: 08-ene-2026 al 07-feb-2026"
         period_match = re.search(
-            r'Periodo:\s+(\d{1,2}-[a-z]{3}-\d{4})\s+al\s+(\d{1,2}-[a-z]{3}-\d{4})',
+            r"Periodo:\s+(\d{1,2}-[a-z]{3}-\d{4})\s+al\s+(\d{1,2}-[a-z]{3}-\d{4})",
             text,
         )
         if period_match:
@@ -137,26 +145,18 @@ class BBVAParser(BaseParser):
                 pass
 
         # Cardholder: line immediately after "TU PAGO REQUERIDO ESTE PERIODO"
-        name_match = re.search(
-            r'TU PAGO REQUERIDO ESTE PERIODO\n([A-ZÁÉÍÓÚÑ ]+)\n', text
-        )
+        name_match = re.search(r"TU PAGO REQUERIDO ESTE PERIODO\n([A-ZÁÉÍÓÚÑ ]+)\n", text)
         if name_match:
             info.cardholder = name_match.group(1).strip()
 
         # Cut date: "Fecha de corte: 07-feb-2026"
-        cut_match = re.search(
-            r'Fecha de corte:\s+(\d{1,2}-[a-z]{3}-\d{4})', text
-        )
+        cut_match = re.search(r"Fecha de corte:\s+(\d{1,2}-[a-z]{3}-\d{4})", text)
         if cut_match:
-            try:
+            with contextlib.suppress(ValueError, KeyError):
                 info.cut_date = self._parse_bbva_date(cut_match.group(1))
-            except (ValueError, KeyError):
-                pass
 
         # Previous balance: "Adeudo del periodo anterior $19,810.48"
-        balance_match = re.search(
-            r'Adeudo del periodo anterior\s+\$([\d,]+\.\d{2})', text
-        )
+        balance_match = re.search(r"Adeudo del periodo anterior\s+\$([\d,]+\.\d{2})", text)
         if balance_match:
             info.previous_balance = self.parse_mx_amount(balance_match.group(1))
 
@@ -194,7 +194,7 @@ class BBVAParser(BaseParser):
 
             # Extract fields from the match
             op_date_str = tx_match.group(1)
-            charge_date_str = tx_match.group(2)
+            _charge_date_str = tx_match.group(2)  # noqa: F841
             description = tx_match.group(3).strip()
             sign = tx_match.group(4)
             amount_str = tx_match.group(5)
@@ -214,7 +214,7 @@ class BBVAParser(BaseParser):
                 if foreign_match:
                     original_currency = foreign_match.group(1)
                     original_amount = self.parse_mx_amount(foreign_match.group(2))
-                    exchange_rate = float(foreign_match.group(3).replace(',', ''))
+                    exchange_rate = float(foreign_match.group(3).replace(",", ""))
                     j += 1
 
             # Determine sign: - means payment/credit, + means charge
@@ -359,7 +359,7 @@ class BBVAParser(BaseParser):
         # MSI: installment pattern (XX DE YY) in description
         if installment:
             return TransactionType.MSI
-        if re.search(r'\d{2}\s+DE\s+\d{2,3}\s+EFECTIVO INMEDIATO', desc):
+        if re.search(r"\d{2}\s+DE\s+\d{2,3}\s+EFECTIVO INMEDIATO", desc):
             return TransactionType.MSI
 
         # Remaining minus-sign transactions
@@ -370,7 +370,4 @@ class BBVAParser(BaseParser):
 
     def _should_skip(self, line: str) -> bool:
         """Check if a line should be skipped (headers, totals, breakdowns)."""
-        for pattern in self.SKIP_PATTERNS:
-            if pattern.match(line):
-                return True
-        return False
+        return any(pattern.match(line) for pattern in self.SKIP_PATTERNS)

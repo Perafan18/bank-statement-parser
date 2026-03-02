@@ -1,14 +1,13 @@
 """Tests for CSV exporters."""
 
 import csv
-from pathlib import Path
 
 import pytest
 
 from bankparser.exporters import available_formats, get_exporter
 from bankparser.exporters.generic import GenericExporter
-from bankparser.exporters.sure import SureExporter
 from bankparser.exporters.monarch import MonarchExporter
+from bankparser.exporters.sure import SureExporter
 
 
 class TestExporterRegistry:
@@ -59,6 +58,80 @@ class TestGenericExporter:
             assert float(payment_row["amount"]) < 0
 
 
+class TestExchangeRateFormat:
+    """Exchange rate should not have trailing zeros."""
+
+    def test_generic_no_trailing_zeros(self, tmp_path):
+        from datetime import date
+
+        from bankparser.models import Transaction
+
+        tx = Transaction(
+            date=date(2026, 1, 12),
+            description="STORE ABROAD",
+            amount=179.51,
+            bank="hsbc",
+            original_amount=9.98,
+            original_currency="USD",
+            exchange_rate=18.06,
+        )
+        exp = GenericExporter()
+        output = tmp_path / "test.csv"
+        exp.export([tx], output)
+
+        with open(output) as f:
+            reader = csv.DictReader(f)
+            row = list(reader)[0]
+            assert row["exchange_rate"] == "18.06"
+
+    def test_generic_preserves_significant_digits(self, tmp_path):
+        from datetime import date
+
+        from bankparser.models import Transaction
+
+        tx = Transaction(
+            date=date(2026, 1, 12),
+            description="STORE ABROAD",
+            amount=179.51,
+            bank="hsbc",
+            original_amount=9.98,
+            original_currency="USD",
+            exchange_rate=17.99699,
+        )
+        exp = GenericExporter()
+        output = tmp_path / "test.csv"
+        exp.export([tx], output)
+
+        with open(output) as f:
+            reader = csv.DictReader(f)
+            row = list(reader)[0]
+            assert row["exchange_rate"] == "17.99699"
+
+    def test_sure_no_trailing_zeros(self, tmp_path):
+        from datetime import date
+
+        from bankparser.models import Transaction
+
+        tx = Transaction(
+            date=date(2026, 1, 12),
+            description="STORE ABROAD",
+            amount=179.51,
+            bank="hsbc",
+            original_amount=9.98,
+            original_currency="USD",
+            exchange_rate=18.06,
+        )
+        exp = SureExporter()
+        output = tmp_path / "sure.csv"
+        exp.export([tx], output)
+
+        with open(output) as f:
+            reader = csv.DictReader(f)
+            row = list(reader)[0]
+            assert "18.06" in row["notes"]
+            assert "18.06000" not in row["notes"]
+
+
 class TestSureExporter:
     def test_headers(self):
         exp = SureExporter()
@@ -107,8 +180,9 @@ class TestMonarchExporter:
 
     def test_tags_column_uses_tags_not_cardholder(self, tmp_path):
         """Tags column should contain tx.tags, not tx.cardholder."""
-        from bankparser.models import Transaction, TransactionType
         from datetime import date
+
+        from bankparser.models import Transaction
 
         txs = [
             Transaction(

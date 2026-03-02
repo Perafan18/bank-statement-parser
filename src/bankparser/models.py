@@ -5,18 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
-from typing import Optional
 
 
 class TransactionType(Enum):
     """Classification of a transaction."""
+
     CHARGE = "charge"
     PAYMENT = "payment"
-    CREDIT = "credit"           # Refund / chargeback
-    FEE = "fee"                 # Annual fee, late fee, etc.
+    CREDIT = "credit"  # Refund / chargeback
+    FEE = "fee"  # Annual fee, late fee, etc.
     INTEREST = "interest"
-    TAX = "tax"                 # IVA on fees/interest
-    MSI = "msi"                 # Meses sin intereses installment
+    TAX = "tax"  # IVA on fees/interest
+    MSI = "msi"  # Meses sin intereses installment
     MSI_ADJUSTMENT = "msi_adjustment"  # Deferred amount (MONTO A DIFERIR)
     TRANSFER = "transfer"
 
@@ -28,19 +28,20 @@ class Transaction:
     This is the universal model that every parser produces
     and every exporter consumes.
     """
+
     date: date
     description: str
-    amount: float                          # Positive = charge, negative = credit/payment
+    amount: float  # Positive = charge, negative = credit/payment
     currency: str = "MXN"
-    bank: str = ""                         # amex, bbva, hsbc
+    bank: str = ""  # amex, bbva, hsbc
     cardholder: str = ""
     tx_type: TransactionType = TransactionType.CHARGE
-    category: str = ""                     # Auto-assigned or empty
-    installment: str = ""                  # e.g. "03 DE 12"
-    reference: str = ""                    # RFC / REF / authorization
-    original_amount: Optional[float] = None   # Foreign currency original
-    original_currency: Optional[str] = None   # e.g. "USD"
-    exchange_rate: Optional[float] = None
+    category: str = ""  # Auto-assigned or empty
+    installment: str = ""  # e.g. "03 DE 12"
+    reference: str = ""  # RFC / REF / authorization
+    original_amount: float | None = None  # Foreign currency original
+    original_currency: str | None = None  # e.g. "USD"
+    exchange_rate: float | None = None
     tags: list[str] = field(default_factory=list)
 
     @property
@@ -78,12 +79,13 @@ class Transaction:
 @dataclass
 class StatementInfo:
     """Metadata extracted from a bank statement."""
+
     bank: str = ""
     account_number: str = ""
     cardholder: str = ""
-    period_start: Optional[date] = None
-    period_end: Optional[date] = None
-    cut_date: Optional[date] = None
+    period_start: date | None = None
+    period_end: date | None = None
+    cut_date: date | None = None
     previous_balance: float = 0.0
     payments_total: float = 0.0
     new_charges_total: float = 0.0
@@ -96,6 +98,7 @@ class StatementInfo:
 @dataclass
 class ParseResult:
     """Complete result of parsing a statement file."""
+
     info: StatementInfo
     transactions: list[Transaction]
     warnings: list[str] = field(default_factory=list)

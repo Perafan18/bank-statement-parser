@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from bankparser.exporters.base import BaseExporter
 from bankparser.exporters.generic import GenericExporter
-from bankparser.exporters.sure import SureExporter
 from bankparser.exporters.monarch import MonarchExporter
-
+from bankparser.exporters.sure import SureExporter
 
 _EXPORTERS: dict[str, BaseExporter] = {
     "generic": GenericExporter(),
@@ -31,6 +28,6 @@ def available_formats() -> list[str]:
     return list(_EXPORTERS.keys())
 
 
-def register_exporter(exporter: BaseExporter):
+def register_exporter(exporter: BaseExporter) -> None:
     """Register a custom exporter."""
     _EXPORTERS[exporter.format_name] = exporter

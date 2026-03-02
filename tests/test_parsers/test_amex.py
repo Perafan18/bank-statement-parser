@@ -7,7 +7,7 @@ import pytest
 
 from bankparser.models import TransactionType
 from bankparser.parsers.amex import AmexParser
-from bankparser.parsers.base import BaseParser, MONTHS_ES
+from bankparser.parsers.base import BaseParser
 
 
 class TestBaseParserHelpers:
@@ -106,10 +106,7 @@ class TestAmexParser:
 
     def test_parse_credits(self, parser, pdf_path):
         result = parser.parse(pdf_path)
-        credits = [
-            tx for tx in result.transactions
-            if tx.tx_type == TransactionType.CREDIT
-        ]
+        credits = [tx for tx in result.transactions if tx.tx_type == TransactionType.CREDIT]
         assert len(credits) > 0
 
     def test_parse_fees_and_interest(self, parser, pdf_path):

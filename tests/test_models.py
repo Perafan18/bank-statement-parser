@@ -21,8 +21,12 @@ class TestTransaction:
 
     def test_is_foreign(self):
         tx = Transaction(
-            date=date(2026, 1, 10), description="Test", amount=629.79,
-            original_amount=35.45, original_currency="USD", exchange_rate=17.76,
+            date=date(2026, 1, 10),
+            description="Test",
+            amount=629.79,
+            original_amount=35.45,
+            original_currency="USD",
+            exchange_rate=17.76,
         )
         assert tx.is_foreign
 
@@ -32,8 +36,11 @@ class TestTransaction:
 
     def test_to_dict(self):
         tx = Transaction(
-            date=date(2026, 1, 10), description="AMAZON", amount=499.0,
-            bank="amex", tx_type=TransactionType.CHARGE,
+            date=date(2026, 1, 10),
+            description="AMAZON",
+            amount=499.0,
+            bank="amex",
+            tx_type=TransactionType.CHARGE,
         )
         d = tx.to_dict()
         assert d["date"] == "2026-01-10"

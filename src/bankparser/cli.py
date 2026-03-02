@@ -18,6 +18,7 @@ from bankparser import __version__
 from bankparser.categorizer import Categorizer
 from bankparser.database import Database
 from bankparser.exporters import available_formats, get_exporter
+from bankparser.interactive import prompt_categorize
 from bankparser.models import Transaction, TransactionType
 from bankparser.parsers import create_default_registry
 
@@ -30,7 +31,7 @@ def get_db() -> Database:
 
 @click.group()
 @click.version_option(__version__, prog_name="bankparse")
-def main():
+def main() -> None:
     """🏦 Parse Mexican bank statement PDFs into CSV.
 
     Supports: American Express, BBVA, HSBC Mexico.
@@ -47,14 +48,31 @@ def main():
 @main.command()
 @click.argument("files", nargs=-1, required=True, type=click.Path())
 @click.option("--bank", "-b", default=None, help="Force bank type (amex, bbva, hsbc)")
-@click.option("--format", "-f", "fmt", default="generic",
-              type=click.Choice(available_formats()), help="Output CSV format")
+@click.option(
+    "--format",
+    "-f",
+    "fmt",
+    default="generic",
+    type=click.Choice(available_formats()),
+    help="Output CSV format",
+)
 @click.option("--output", "-o", default=None, help="Output CSV path")
 @click.option("--no-fees", is_flag=True, help="Exclude fees, interest, tax")
 @click.option("--no-msi", is_flag=True, help="Exclude MSI installments")
 @click.option("--charges-only", is_flag=True, help="Only actual charges and credits")
 @click.option("--cardholder", default=None, help="Filter by cardholder name")
-def parse(files, bank, fmt, output, no_fees, no_msi, charges_only, cardholder):
+@click.option("--no-ask", is_flag=True, help="Skip interactive categorization")
+def parse(
+    files: tuple[str, ...],
+    bank: str | None,
+    fmt: str,
+    output: str | None,
+    no_fees: bool,
+    no_msi: bool,
+    charges_only: bool,
+    cardholder: str | None,
+    no_ask: bool,
+) -> None:
     """Parse one or more PDF statements into CSV.
 
     \b
@@ -89,20 +107,32 @@ def parse(files, bank, fmt, output, no_fees, no_msi, charges_only, cardholder):
             for w in result.warnings:
                 click.echo(f"  ⚠️  {w}", err=True)
 
-            click.echo(f"  ✅ {result.transaction_count} transactions (bank: {result.info.bank})", err=True)
+            msg = f"  ✅ {result.transaction_count} transactions (bank: {result.info.bank})"
+            click.echo(msg, err=True)
             categorizer.categorize_all(result.transactions)
             all_transactions.extend(result.transactions)
 
         if not all_transactions:
             click.echo("❌ No transactions found!", err=True)
             sys.exit(1)
+
+        # Interactive categorization for new descriptions
+        if not no_ask:
+            uncategorized = categorizer.collect_uncategorized(all_transactions)
+            if uncategorized:
+                prompt_categorize(uncategorized, db)
+                categorizer.recategorize_uncategorized(all_transactions)
     finally:
         db.close()
 
     # Filters
     if no_fees:
-        exclude = {TransactionType.FEE, TransactionType.INTEREST,
-                   TransactionType.TAX, TransactionType.MSI_ADJUSTMENT}
+        exclude = {
+            TransactionType.FEE,
+            TransactionType.INTEREST,
+            TransactionType.TAX,
+            TransactionType.MSI_ADJUSTMENT,
+        }
         all_transactions = [tx for tx in all_transactions if tx.tx_type not in exclude]
     if no_msi:
         all_transactions = [tx for tx in all_transactions if tx.tx_type != TransactionType.MSI]
@@ -131,13 +161,13 @@ def parse(files, bank, fmt, output, no_fees, no_msi, charges_only, cardholder):
 
 
 @main.group()
-def categories():
+def categories() -> None:
     """Manage transaction categories."""
     pass
 
 
 @categories.command("list")
-def categories_list():
+def categories_list() -> None:
     """List all categories."""
     db = get_db()
     cats = db.list_categories()
@@ -153,7 +183,7 @@ def categories_list():
 @click.argument("name")
 @click.option("--parent", default=None)
 @click.option("--icon", default="")
-def categories_add(name, parent, icon):
+def categories_add(name: str, parent: str | None, icon: str) -> None:
     """Add a new category."""
     db = get_db()
     try:
@@ -167,7 +197,7 @@ def categories_add(name, parent, icon):
 @categories.command("remove")
 @click.argument("name")
 @click.confirmation_option(prompt="Remove category and associated rules?")
-def categories_remove(name):
+def categories_remove(name: str) -> None:
     """Remove a category and its rules."""
     db = get_db()
     db.remove_category(name)
@@ -176,14 +206,14 @@ def categories_remove(name):
 
 
 @main.group()
-def rules():
+def rules() -> None:
     """Manage categorization rules."""
     pass
 
 
 @rules.command("list")
 @click.option("--bank", default=None, help="Filter by bank")
-def rules_list(bank):
+def rules_list(bank: str | None) -> None:
     """List categorization rules."""
     db = get_db()
     rule_list = db.list_rules(bank)
@@ -191,7 +221,11 @@ def rules_list(bank):
     click.echo(f"\n{'ID':<5} {'Pri':<5} {'Bank':<6} {'Pattern':<30} {'Category'}")
     click.echo("─" * 75)
     for r in rule_list:
-        click.echo(f"{r['id']:<5} {r['priority']:<5} {r['bank']:<6} {r['pattern']:<30} {r['category_name']}")
+        line = (
+            f"{r['id']:<5} {r['priority']:<5} {r['bank']:<6}"
+            f" {r['pattern']:<30} {r['category_name']}"
+        )
+        click.echo(line)
     click.echo(f"\n{len(rule_list)} rules total")
 
 
@@ -200,7 +234,7 @@ def rules_list(bank):
 @click.argument("category")
 @click.option("--bank", default="*", help="Bank (* = all)")
 @click.option("--priority", default=10, help="Higher = checked first")
-def rules_add(pattern, category, bank, priority):
+def rules_add(pattern: str, category: str, bank: str, priority: int) -> None:
     """Add a categorization rule. Example: bankparse rules add "COSTCO" "Groceries" """
     db = get_db()
     db.add_rule(pattern, category, bank, priority)
@@ -210,7 +244,7 @@ def rules_add(pattern, category, bank, priority):
 
 @rules.command("remove")
 @click.argument("rule_id", type=int)
-def rules_remove(rule_id):
+def rules_remove(rule_id: int) -> None:
     """Remove a rule by ID."""
     db = get_db()
     db.remove_rule(rule_id)
@@ -219,7 +253,7 @@ def rules_remove(rule_id):
 
 
 @main.command()
-def info():
+def info() -> None:
     """Show database info and stats."""
     db = get_db()
     click.echo(f"\n📁 Database: {db.db_path}")

@@ -23,7 +23,7 @@ class SureExporter(BaseExporter):
         notes_parts = []
         if tx.original_amount and tx.original_currency and tx.exchange_rate:
             notes_parts.append(
-                f"{tx.original_currency} {tx.original_amount:.2f} @ {tx.exchange_rate:.5f}"
+                f"{tx.original_currency} {tx.original_amount:.2f} @ {tx.exchange_rate:.10g}"
             )
         if tx.installment:
             notes_parts.append(f"Cargo {tx.installment}")

@@ -9,7 +9,16 @@ class MonarchExporter(BaseExporter):
     description = "Monarch Money import format"
 
     def get_headers(self) -> list[str]:
-        return ["Date", "Merchant", "Amount", "Category", "Account", "Tags", "Notes", "Original Currency"]
+        return [
+            "Date",
+            "Merchant",
+            "Amount",
+            "Category",
+            "Account",
+            "Tags",
+            "Notes",
+            "Original Currency",
+        ]
 
     def format_row(self, tx: Transaction) -> list[str]:
         bank_label = tx.bank.upper() if tx.bank else "Card"

@@ -10,9 +10,20 @@ class GenericExporter(BaseExporter):
 
     def get_headers(self) -> list[str]:
         return [
-            "date", "description", "amount", "currency", "bank", "cardholder",
-            "type", "category", "installment", "reference",
-            "original_amount", "original_currency", "exchange_rate", "tags",
+            "date",
+            "description",
+            "amount",
+            "currency",
+            "bank",
+            "cardholder",
+            "type",
+            "category",
+            "installment",
+            "reference",
+            "original_amount",
+            "original_currency",
+            "exchange_rate",
+            "tags",
         ]
 
     def format_row(self, tx: Transaction) -> list[str]:
@@ -29,6 +40,6 @@ class GenericExporter(BaseExporter):
             tx.reference,
             f"{tx.original_amount:.2f}" if tx.original_amount else "",
             tx.original_currency or "",
-            f"{tx.exchange_rate:.5f}" if tx.exchange_rate else "",
+            f"{tx.exchange_rate:.10g}" if tx.exchange_rate else "",
             "|".join(tx.tags),
         ]

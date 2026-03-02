@@ -11,7 +11,6 @@ import pytest
 from bankparser.models import TransactionType
 from bankparser.parsers.bbva import BBVAParser
 
-
 BBVA_INFO_TEXT = """Descubre todo lo que tu TDC puede hacer por ti
 Tu tarjeta de crédito te abre un mundo de oportunidades
 BBVA MEXICO, S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO BBVA MEXICO.
